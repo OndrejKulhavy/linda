@@ -1,10 +1,14 @@
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { BarChart3, Users, Clock, ArrowRight, Trophy } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-linear-to-b from-background to-muted/30">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <ThemeToggle />
+      </div>
       <div className="container mx-auto px-4 py-12 sm:py-24">
         <div className="text-center mb-12 sm:mb-20">
           <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 mb-4 sm:mb-6">

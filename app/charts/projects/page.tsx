@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { ArrowLeft, X } from "lucide-react"
 
 const COLORS = [
@@ -90,12 +91,15 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 sm:p-6">
-        <Link href="/">
-          <Button variant="ghost" className="mb-4 sm:mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Zpět
-          </Button>
-        </Link>
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
+          <Link href="/">
+            <Button variant="ghost">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Zpět
+            </Button>
+          </Link>
+          <ThemeToggle />
+        </div>
 
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Projekty</h1>
 
