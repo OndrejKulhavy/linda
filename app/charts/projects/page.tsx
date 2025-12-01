@@ -8,7 +8,6 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -157,19 +156,20 @@ export default function ProjectsPage() {
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
             {filteredData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350} className="sm:!h-[400px]">
+              <ResponsiveContainer width="100%" height={450} className="sm:!h-[500px]">
                 <PieChart>
                   <Pie
                     data={filteredData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={90}
-                    paddingAngle={2}
+                    innerRadius={80}
+                    outerRadius={140}
+                    paddingAngle={3}
                     dataKey="hours"
                     nameKey="project"
-                    label={({ project, percent }) => `${(percent * 100).toFixed(0)}%`}
-                    labelLine={{ stroke: "#6b7280" }}
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    labelLine={{ stroke: "#9ca3af", strokeWidth: 1.5 }}
+                    animationDuration={300}
                   >
                     {filteredData.map((d) => {
                       const originalIndex = data.findIndex((orig) => orig.project === d.project)
@@ -180,23 +180,21 @@ export default function ProjectsPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e5e7eb",
                       borderRadius: "8px",
-                      color: "#f3f4f6",
+                      color: "#111827",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                      padding: "12px 16px",
                     }}
+                    itemStyle={{ color: "#374151", fontWeight: 500 }}
+                    labelStyle={{ color: "#111827", fontWeight: 600, marginBottom: "4px" }}
                     formatter={(value: number) => [`${value.toFixed(1)} hodin`, "Hodiny"]}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={60}
-                    wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                    formatter={(value) => <span style={{ color: "#9ca3af" }}>{value}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px] sm:h-[400px] text-muted-foreground text-center px-4">
+              <div className="flex items-center justify-center h-[400px] sm:h-[500px] text-muted-foreground text-center px-4">
                 Vyber časové období a klikni na &quot;Načíst data&quot;
               </div>
             )}
