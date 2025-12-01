@@ -1,0 +1,500 @@
+[
+    {
+        "id": "68c1a1fd10330d3d193dbf80",
+        "name": "Fellaship",
+        "hourlyRate": {
+            "amount": 0,
+            "currency": "Kč"
+        },
+        "costRate": {
+            "amount": 0,
+            "currency": "Kč"
+        },
+        "memberships": [
+            {
+                "userId": "68c1a1fd10330d3d193dbf7f",
+                "hourlyRate": {
+                    "amount": 50000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "68e26cee7b87bf35bc075324",
+                "hourlyRate": {
+                    "amount": 25000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "68ea375ba76c246ccca4622c",
+                "hourlyRate": {
+                    "amount": 50000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "68f757904ef41a4c27033694",
+                "hourlyRate": {
+                    "amount": 35000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69149e924d8b0c5a9ced3695",
+                "hourlyRate": {
+                    "amount": 25000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "6926d15fcc325e1842ea7dd0",
+                "hourlyRate": {
+                    "amount": 35000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69273de334742a75af838515",
+                "hourlyRate": {
+                    "amount": 30000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69273de334742a75af838516",
+                "hourlyRate": {
+                    "amount": 30000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "6929de73aa035e72c911239b",
+                "hourlyRate": {
+                    "amount": 25000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "692c38c95831f77701a3ce3d",
+                "hourlyRate": {
+                    "amount": 25000,
+                    "currency": "Kč"
+                },
+                "costRate": null,
+                "targetId": "68c1a1fd10330d3d193dbf80",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            }
+        ],
+        "workspaceSettings": {
+            "timeRoundingInReports": false,
+            "onlyAdminsSeeBillableRates": true,
+            "activeBillableHours": true,
+            "onlyAdminsCanChangeBillableStatus": false,
+            "onlyAdminsCreateProject": true,
+            "onlyAdminsSeeDashboard": false,
+            "defaultBillableProjects": true,
+            "lockTimeEntries": null,
+            "lockTimeZone": null,
+            "round": {
+                "round": "Round to nearest",
+                "minutes": "15"
+            },
+            "projectFavorites": true,
+            "canSeeTimeSheet": false,
+            "canSeeTracker": true,
+            "projectPickerSpecialFilter": false,
+            "forceProjects": false,
+            "forceTasks": false,
+            "forceTags": false,
+            "forceDescription": false,
+            "onlyAdminsSeeAllTimeEntries": false,
+            "onlyAdminsSeePublicProjectsEntries": false,
+            "trackTimeDownToSecond": true,
+            "projectGroupingLabel": "CLIENT",
+            "adminOnlyPages": [],
+            "automaticLock": null,
+            "onlyAdminsCreateTag": false,
+            "onlyAdminsCreateTask": false,
+            "timeTrackingMode": "DEFAULT",
+            "multiFactorEnabled": false,
+            "numberFormat": "PERIOD_COMMA",
+            "currencyFormat": "VALUE_SPACE_CURRENCY",
+            "durationFormat": "FULL",
+            "entityCreationPermissions": {
+                "whoCanCreateTasks": "EVERYONE",
+                "whoCanCreateProjectsAndClients": "ADMINS",
+                "whoCanCreateTags": "EVERYONE"
+            },
+            "projectLabel": "project",
+            "taskLabel": "task",
+            "workingDays": [
+                "MONDAY",
+                "FRIDAY",
+                "WEDNESDAY",
+                "TUESDAY",
+                "THURSDAY"
+            ],
+            "isProjectPublicByDefault": true
+        },
+        "imageUrl": "https://avatar.cake.com/2025-10-22T11%3A24%3A24.992Z1-LOGO_FELLASHIP_KREATIVNI_AGENTURA-TEXT2.png",
+        "featureSubscriptionType": "FREE",
+        "features": [
+            "KIOSK",
+            "TIME_TRACKING"
+        ],
+        "currencies": [
+            {
+                "id": "68c1a1fd10330d3d193dbf81",
+                "code": "Kč",
+                "isDefault": true
+            }
+        ],
+        "subdomain": {
+            "name": null,
+            "enabled": false
+        },
+        "cakeOrganizationId": "68c1a1fe306ae12168ae7826"
+    },
+    {
+        "id": "6913493799a5350d287b6f88",
+        "name": "Private",
+        "hourlyRate": {
+            "amount": 0,
+            "currency": "CZK"
+        },
+        "costRate": {
+            "amount": 0,
+            "currency": "CZK"
+        },
+        "memberships": [
+            {
+                "userId": "68f757904ef41a4c27033694",
+                "hourlyRate": {
+                    "amount": 25000,
+                    "currency": "CZK"
+                },
+                "costRate": null,
+                "targetId": "6913493799a5350d287b6f88",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            }
+        ],
+        "workspaceSettings": {
+            "timeRoundingInReports": false,
+            "onlyAdminsSeeBillableRates": true,
+            "activeBillableHours": true,
+            "onlyAdminsCanChangeBillableStatus": false,
+            "onlyAdminsCreateProject": true,
+            "onlyAdminsSeeDashboard": false,
+            "defaultBillableProjects": true,
+            "lockTimeEntries": null,
+            "lockTimeZone": null,
+            "round": {
+                "round": "Round to nearest",
+                "minutes": "15"
+            },
+            "projectFavorites": true,
+            "canSeeTimeSheet": true,
+            "canSeeTracker": true,
+            "projectPickerSpecialFilter": false,
+            "forceProjects": true,
+            "forceTasks": false,
+            "forceTags": false,
+            "forceDescription": false,
+            "onlyAdminsSeeAllTimeEntries": false,
+            "onlyAdminsSeePublicProjectsEntries": false,
+            "trackTimeDownToSecond": true,
+            "projectGroupingLabel": "CLIENT",
+            "adminOnlyPages": [],
+            "automaticLock": null,
+            "onlyAdminsCreateTag": false,
+            "onlyAdminsCreateTask": false,
+            "timeTrackingMode": "DEFAULT",
+            "multiFactorEnabled": false,
+            "numberFormat": "PERIOD_COMMA",
+            "currencyFormat": "VALUE_SPACE_CURRENCY",
+            "durationFormat": "FULL",
+            "entityCreationPermissions": {
+                "whoCanCreateTasks": "EVERYONE",
+                "whoCanCreateProjectsAndClients": "ADMINS",
+                "whoCanCreateTags": "EVERYONE"
+            },
+            "projectLabel": "project",
+            "taskLabel": "task",
+            "workingDays": [
+                "MONDAY",
+                "FRIDAY",
+                "WEDNESDAY",
+                "TUESDAY",
+                "THURSDAY"
+            ],
+            "isProjectPublicByDefault": true
+        },
+        "imageUrl": "",
+        "featureSubscriptionType": "FREE",
+        "features": [
+            "KIOSK",
+            "TIME_TRACKING"
+        ],
+        "currencies": [
+            {
+                "id": "6913493799a5350d287b6f96",
+                "code": "CZK",
+                "isDefault": true
+            }
+        ],
+        "subdomain": {
+            "name": null,
+            "enabled": false
+        },
+        "cakeOrganizationId": "69134937d8b2ee1507a40e80"
+    },
+    {
+        "id": "691720f00bbbbd46d406c8e4",
+        "name": "Tuuli cooperative",
+        "hourlyRate": {
+            "amount": 0,
+            "currency": "Kč"
+        },
+        "costRate": {
+            "amount": 0,
+            "currency": "Kč"
+        },
+        "memberships": [
+            {
+                "userId": "691720f00bbbbd46d406c8f7",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "691335b2f832044528072836",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69135925b7591b3c3ea8fb31",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69133da1c6c9b90732a2eda7",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "68f757904ef41a4c27033694",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69133d9e4d8b0c5a9cb67b88",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69133db1c6c9b90732a2f1a9",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69133d7799a5350d28784bb1",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "6917276299d8ad35a5097449",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "691465ec4d8b0c5a9ce0146f",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69133734f832044528077521",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "6915a269d1f86a3cfc179e66",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69170cb9c8b9f34cf44cf2ed",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69133d074d8b0c5a9cb65be7",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69133d8fc6c9b90732a2e9c0",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            },
+            {
+                "userId": "69134924c6c9b90732a59bb2",
+                "hourlyRate": null,
+                "costRate": null,
+                "targetId": "691720f00bbbbd46d406c8e4",
+                "membershipType": "WORKSPACE",
+                "membershipStatus": "ACTIVE"
+            }
+        ],
+        "workspaceSettings": {
+            "timeRoundingInReports": false,
+            "onlyAdminsSeeBillableRates": true,
+            "activeBillableHours": true,
+            "onlyAdminsCanChangeBillableStatus": false,
+            "onlyAdminsCreateProject": true,
+            "onlyAdminsSeeDashboard": false,
+            "defaultBillableProjects": true,
+            "lockTimeEntries": null,
+            "lockTimeZone": null,
+            "round": {
+                "round": "Round to nearest",
+                "minutes": "15"
+            },
+            "projectFavorites": true,
+            "canSeeTimeSheet": true,
+            "canSeeTracker": true,
+            "projectPickerSpecialFilter": false,
+            "forceProjects": true,
+            "forceTasks": false,
+            "forceTags": false,
+            "forceDescription": false,
+            "onlyAdminsSeeAllTimeEntries": false,
+            "onlyAdminsSeePublicProjectsEntries": false,
+            "trackTimeDownToSecond": true,
+            "projectGroupingLabel": "CLIENT",
+            "adminOnlyPages": [],
+            "automaticLock": null,
+            "onlyAdminsCreateTag": false,
+            "onlyAdminsCreateTask": false,
+            "timeTrackingMode": "DEFAULT",
+            "multiFactorEnabled": false,
+            "numberFormat": "SPACE_COMMA",
+            "currencyFormat": "VALUE_SPACE_CURRENCY",
+            "durationFormat": "FULL",
+            "entityCreationPermissions": {
+                "whoCanCreateTasks": "EVERYONE",
+                "whoCanCreateProjectsAndClients": "ADMINS",
+                "whoCanCreateTags": "EVERYONE"
+            },
+            "projectLabel": "project",
+            "taskLabel": "task",
+            "workingDays": [
+                "MONDAY",
+                "FRIDAY",
+                "WEDNESDAY",
+                "TUESDAY",
+                "THURSDAY"
+            ],
+            "isProjectPublicByDefault": true
+        },
+        "imageUrl": "",
+        "featureSubscriptionType": "FREE",
+        "features": [
+            "KIOSK",
+            "TIME_TRACKING"
+        ],
+        "currencies": [
+            {
+                "id": "691720f00bbbbd46d406c8fc",
+                "code": "Kč",
+                "isDefault": true
+            }
+        ],
+        "subdomain": {
+            "name": null,
+            "enabled": false
+        },
+        "cakeOrganizationId": "691720f07d53306063703f99"
+    }
+]
