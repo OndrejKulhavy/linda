@@ -67,41 +67,32 @@ export default function UserHoursPage() {
 
         <h1 className="text-3xl font-bold mb-6">Hodiny podle uživatelů</h1>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Vyber časové období</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex flex-col gap-2 flex-1">
-                <label htmlFor="from" className="text-sm font-medium">
-                  Od
-                </label>
-                <Input
-                  id="from"
-                  type="date"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-2 flex-1">
-                <label htmlFor="to" className="text-sm font-medium">
-                  Do
-                </label>
-                <Input
-                  id="to"
-                  type="date"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                />
-              </div>
-              <Button onClick={() => handleFetch(from, to)} disabled={loading}>
-                {loading ? "Načítám..." : "Načíst data"}
-              </Button>
-            </div>
-            {error && <p className="text-red-500 mt-4">{error}</p>}
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="flex items-center gap-2">
+            <label htmlFor="from" className="text-sm text-muted-foreground">Od</label>
+            <Input
+              id="from"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="w-[140px] h-9"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="to" className="text-sm text-muted-foreground">Do</label>
+            <Input
+              id="to"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="w-[140px] h-9"
+            />
+          </div>
+          <Button onClick={() => handleFetch(from, to)} disabled={loading} size="sm">
+            {loading ? "Načítám..." : "Načíst"}
+          </Button>
+          {error && <span className="text-sm text-red-500">{error}</span>}
+        </div>
 
         <Card>
           <CardHeader>
