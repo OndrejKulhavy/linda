@@ -147,6 +147,7 @@ export function UserHoursTreemap({ data }: TreemapChartProps) {
               dataKey="hours"
               aspectRatio={4 / 3}
               stroke="#fff"
+              animationDuration={300}
               content={<CustomTreemapContent x={0} y={0} width={0} height={0} name="" hours={0} color="" />}
             >
               <Tooltip

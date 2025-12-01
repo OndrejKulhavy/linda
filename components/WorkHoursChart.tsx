@@ -84,6 +84,7 @@ export function WorkHoursChart({ data, totalHours, totalGoal }: WorkHoursChartPr
             strokeWidth={2}
             strokeDasharray="5 5"
             dot={false}
+            animationDuration={300}
           />
           <Line
             type="monotone"
@@ -92,6 +93,7 @@ export function WorkHoursChart({ data, totalHours, totalGoal }: WorkHoursChartPr
             strokeWidth={2}
             dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
             activeDot={{ r: 6, fill: "#60a5fa" }}
+            animationDuration={300}
           />
         </LineChart>
       </ResponsiveContainer>
