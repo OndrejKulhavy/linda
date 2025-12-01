@@ -126,7 +126,7 @@ export function UserHoursTreemap({ data }: TreemapChartProps) {
           <Badge
             key={project}
             variant={activeProjects.has(project) ? "default" : "outline"}
-            className="cursor-pointer transition-all"
+            className="cursor-pointer transition-all text-xs sm:text-sm py-1 px-2 sm:py-0.5 sm:px-2.5"
             style={{
               backgroundColor: activeProjects.has(project) ? projectColors[project] : "transparent",
               borderColor: projectColors[project],
@@ -139,7 +139,7 @@ export function UserHoursTreemap({ data }: TreemapChartProps) {
         ))}
       </div>
 
-      <div className="w-full h-[500px] bg-muted/20 rounded-lg p-2">
+      <div className="w-full h-[300px] sm:h-[500px] bg-muted/20 rounded-lg p-2">
         {filteredData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <Treemap

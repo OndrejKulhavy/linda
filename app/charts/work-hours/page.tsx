@@ -142,57 +142,57 @@ export default function WorkHoursPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 sm:p-6">
         <Link href="/">
-          <Button variant="ghost" className="mb-6">
+          <Button variant="ghost" className="mb-4 sm:mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Zpět
           </Button>
         </Link>
 
-        <h1 className="text-3xl font-bold mb-6">Odpracované hodiny</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Odpracované hodiny</h1>
 
-        <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2">
-            <label htmlFor="from" className="text-sm text-muted-foreground">Od</label>
+            <label htmlFor="from" className="text-sm text-muted-foreground min-w-[28px]">Od</label>
             <Input
               id="from"
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="w-[140px] h-9"
+              className="flex-1 sm:w-[140px] h-10 sm:h-9"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="to" className="text-sm text-muted-foreground">Do</label>
+            <label htmlFor="to" className="text-sm text-muted-foreground min-w-[28px]">Do</label>
             <Input
               id="to"
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-[140px] h-9"
+              className="flex-1 sm:w-[140px] h-10 sm:h-9"
             />
           </div>
-          <Button onClick={() => handleFetch(from, to)} disabled={loading} size="sm">
+          <Button onClick={() => handleFetch(from, to)} disabled={loading} size="sm" className="w-full sm:w-auto h-10 sm:h-9">
             {loading ? "Načítám..." : "Načíst"}
           </Button>
           {error && <span className="text-sm text-red-500">{error}</span>}
           {userCount > 0 && (
-            <span className="text-sm text-muted-foreground ml-auto">
+            <span className="text-sm text-muted-foreground w-full sm:w-auto sm:ml-auto text-center sm:text-right">
               {userCount} uživatelů · cíl {weeklyGoal}h/týden
             </span>
           )}
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Graf odpracovaných hodin</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl">Graf odpracovaných hodin</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
             {data.length > 0 ? (
               <WorkHoursChart data={data} totalHours={totalHours} totalGoal={totalGoal} />
             ) : (
-              <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+              <div className="flex items-center justify-center h-[300px] sm:h-[400px] text-muted-foreground text-center px-4">
                 Vyber časové období a klikni na &quot;Načíst data&quot;
               </div>
             )}

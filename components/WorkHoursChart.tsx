@@ -29,28 +29,32 @@ export function WorkHoursChart({ data, totalHours, totalGoal }: WorkHoursChartPr
 
   return (
     <div>
-      <div className="flex gap-6 mb-6">
-        <div className="flex-1 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <p className="text-sm text-muted-foreground">Odpracováno</p>
-          <p className="text-3xl font-bold text-blue-500">{totalHours.toFixed(1)}h</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-6 mb-4 sm:mb-6">
+        <div className="p-2 sm:p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <p className="text-xs sm:text-sm text-muted-foreground">Odpracováno</p>
+          <p className="text-lg sm:text-3xl font-bold text-blue-500">{totalHours.toFixed(1)}h</p>
         </div>
-        <div className="flex-1 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-          <p className="text-sm text-muted-foreground">Cíl</p>
-          <p className="text-3xl font-bold text-green-500">{totalGoal.toFixed(1)}h</p>
+        <div className="p-2 sm:p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+          <p className="text-xs sm:text-sm text-muted-foreground">Cíl</p>
+          <p className="text-lg sm:text-3xl font-bold text-green-500">{totalGoal.toFixed(1)}h</p>
         </div>
-        <div className={`flex-1 p-4 rounded-lg ${percentComplete >= 100 ? 'bg-green-500/10 border-green-500/20' : 'bg-orange-500/10 border-orange-500/20'} border`}>
-          <p className="text-sm text-muted-foreground">Plnění</p>
-          <p className={`text-3xl font-bold ${percentComplete >= 100 ? 'text-green-500' : 'text-orange-500'}`}>{percentComplete}%</p>
+        <div className={`p-2 sm:p-4 rounded-lg ${percentComplete >= 100 ? 'bg-green-500/10 border-green-500/20' : 'bg-orange-500/10 border-orange-500/20'} border`}>
+          <p className="text-xs sm:text-sm text-muted-foreground">Plnění</p>
+          <p className={`text-lg sm:text-3xl font-bold ${percentComplete >= 100 ? 'text-green-500' : 'text-orange-500'}`}>{percentComplete}%</p>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+      <ResponsiveContainer width="100%" height={300} className="sm:!h-[400px]">
+        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
           <XAxis
             dataKey="weekLabel"
             stroke="#9ca3af"
-            tick={{ fill: "#9ca3af", fontSize: 12 }}
+            tick={{ fill: "#9ca3af", fontSize: 10 }}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+            interval={0}
           />
           <YAxis
             stroke="#9ca3af"

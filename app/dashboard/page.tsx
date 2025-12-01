@@ -42,38 +42,42 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Work Hours Dashboard</h1>
+    <div className="container mx-auto p-4 sm:p-6">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Work Hours Dashboard</h1>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Select Date Range</CardTitle>
+      <Card className="mb-4 sm:mb-6">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Select Date Range</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex flex-col gap-2 flex-1">
-              <label htmlFor="from" className="text-sm font-medium">
-                From
-              </label>
-              <Input
-                id="from"
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label htmlFor="from" className="text-sm font-medium">
+                  From
+                </label>
+                <Input
+                  id="from"
+                  type="date"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="to" className="text-sm font-medium">
+                  To
+                </label>
+                <Input
+                  id="to"
+                  type="date"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="h-10"
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2 flex-1">
-              <label htmlFor="to" className="text-sm font-medium">
-                To
-              </label>
-              <Input
-                id="to"
-                type="date"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </div>
-            <Button onClick={handleFetch} disabled={loading}>
+            <Button onClick={handleFetch} disabled={loading} className="w-full sm:w-auto h-10">
               {loading ? "Loading..." : "Fetch Data"}
             </Button>
           </div>
@@ -82,14 +86,14 @@ export default function DashboardPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Work Hours Chart</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Work Hours Chart</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
           {data.length > 0 ? (
             <WorkHoursChart data={data} totalHours={totalHours} totalGoal={totalGoal} />
           ) : (
-            <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+            <div className="flex items-center justify-center h-[300px] sm:h-[400px] text-muted-foreground text-center px-4">
               Select a date range and click &quot;Fetch Data&quot; to view your work hours
             </div>
           )}
