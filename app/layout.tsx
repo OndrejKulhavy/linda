@@ -34,9 +34,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="min-h-screen flex flex-col">
-            <main className="flex-1">{children}</main>
-            <footer className="py-4 text-center text-sm text-muted-foreground">
+          <div className="h-screen flex flex-col overflow-hidden">
+            <main className="flex-1 overflow-auto">{children}</main>
+            <footer className="py-4 text-center text-sm text-muted-foreground shrink-0">
               Made with{" "}
               <span className="text-blue-500">♥</span> by{" "}
               <a
