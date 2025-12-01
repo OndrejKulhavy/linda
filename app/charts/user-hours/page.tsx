@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,8 +26,8 @@ export default function UserHoursPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleFetch = async () => {
-    if (!from || !to) {
+  const handleFetch = useCallback(async (fromDate: string, toDate: string) => {
+    if (!fromDate || !toDate) {
       setError("Vyber prosím obě data")
       return
     }
@@ -36,7 +36,7 @@ export default function UserHoursPage() {
     setError(null)
 
     try {
-      const response = await fetch(`/api/clockify/users?from=${from}&to=${to}`)
+      const response = await fetch(`/api/clockify/users?from=${fromDate}&to=${toDate}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -49,7 +49,11 @@ export default function UserHoursPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    handleFetch(from, to)
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,7 +95,7 @@ export default function UserHoursPage() {
                   onChange={(e) => setTo(e.target.value)}
                 />
               </div>
-              <Button onClick={handleFetch} disabled={loading}>
+              <Button onClick={() => handleFetch(from, to)} disabled={loading}>
                 {loading ? "Načítám..." : "Načíst data"}
               </Button>
             </div>

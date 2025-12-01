@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,16 +18,84 @@ function getLastWeekRange() {
   }
 }
 
+function getWorkingDaysInRange(from: string, to: string): string[] {
+  const days: string[] = []
+  const current = new Date(from)
+  const end = new Date(to)
+  
+  while (current <= end) {
+    const dayOfWeek = current.getDay()
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      days.push(current.toISOString().split("T")[0])
+    }
+    current.setDate(current.getDate() + 1)
+  }
+  
+  return days
+}
+
+function getWeekNumber(date: Date): string {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7))
+  const yearStart = new Date(d.getFullYear(), 0, 1)
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return `${d.getFullYear()}-W${weekNo}`
+}
+
+function getWeekDateRange(weekStr: string): { start: Date; end: Date } {
+  const [year, weekPart] = weekStr.split("-W")
+  const weekNum = parseInt(weekPart, 10)
+  
+  const jan4 = new Date(parseInt(year, 10), 0, 4)
+  const startOfWeek1 = new Date(jan4)
+  startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7))
+  
+  const start = new Date(startOfWeek1)
+  start.setDate(startOfWeek1.getDate() + (weekNum - 1) * 7)
+  
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  
+  return { start, end }
+}
+
+function formatWeekLabel(weekStr: string): string {
+  const { start, end } = getWeekDateRange(weekStr)
+  const formatDate = (d: Date) => `${d.getDate()}.${d.getMonth() + 1}.`
+  return `${formatDate(start)} - ${formatDate(end)}`
+}
+
+function getWeeksInRange(from: string, to: string): string[] {
+  const weeks = new Set<string>()
+  const current = new Date(from)
+  const end = new Date(to)
+  
+  while (current <= end) {
+    weeks.add(getWeekNumber(current))
+    current.setDate(current.getDate() + 1)
+  }
+  
+  return Array.from(weeks).sort()
+}
+
 export default function WorkHoursPage() {
   const defaultRange = getLastWeekRange()
   const [from, setFrom] = useState(defaultRange.from)
   const [to, setTo] = useState(defaultRange.to)
   const [data, setData] = useState<WorkHoursData[]>([])
+  const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleFetch = async () => {
-    if (!from || !to) {
+  const weeklyGoalPerUser = 40
+  const weeklyGoal = userCount * weeklyGoalPerUser
+
+  const totalHours = data.reduce((sum, d) => sum + d.hours, 0)
+  const totalGoal = data.length * weeklyGoal
+
+  const handleFetch = useCallback(async (fromDate: string, toDate: string) => {
+    if (!fromDate || !toDate) {
       setError("Vyber prosím obě data")
       return
     }
@@ -36,20 +104,41 @@ export default function WorkHoursPage() {
     setError(null)
 
     try {
-      const response = await fetch(`/api/clockify?from=${from}&to=${to}`)
+      const response = await fetch(`/api/clockify/total?from=${fromDate}&to=${toDate}`)
       const result = await response.json()
 
       if (!response.ok) {
         throw new Error(result.error || "Nepodařilo se načíst data")
       }
 
-      setData(result.data)
+      setUserCount(result.userCount)
+
+      const weeklyHours = new Map<string, number>()
+      
+      for (const entry of result.data) {
+        const week = getWeekNumber(new Date(entry.date))
+        weeklyHours.set(week, (weeklyHours.get(week) || 0) + entry.hours)
+      }
+
+      const weeks = getWeeksInRange(fromDate, toDate)
+      const chartData: WorkHoursData[] = weeks.map((week) => ({
+        date: week,
+        weekLabel: formatWeekLabel(week),
+        hours: Math.round((weeklyHours.get(week) || 0) * 100) / 100,
+        goal: result.userCount * weeklyGoalPerUser,
+      }))
+
+      setData(chartData)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Došlo k chybě")
     } finally {
       setLoading(false)
     }
-  }
+  }, [weeklyGoalPerUser])
+
+  useEffect(() => {
+    handleFetch(from, to)
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,11 +180,16 @@ export default function WorkHoursPage() {
                   onChange={(e) => setTo(e.target.value)}
                 />
               </div>
-              <Button onClick={handleFetch} disabled={loading}>
+              <Button onClick={() => handleFetch(from, to)} disabled={loading}>
                 {loading ? "Načítám..." : "Načíst data"}
               </Button>
             </div>
             {error && <p className="text-red-500 mt-4">{error}</p>}
+            {userCount > 0 && (
+              <p className="text-muted-foreground mt-4">
+                Počet uživatelů: {userCount} (týdenní cíl: {weeklyGoal}h)
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -105,7 +199,7 @@ export default function WorkHoursPage() {
           </CardHeader>
           <CardContent>
             {data.length > 0 ? (
-              <WorkHoursChart data={data} />
+              <WorkHoursChart data={data} totalHours={totalHours} totalGoal={totalGoal} />
             ) : (
               <div className="flex items-center justify-center h-[400px] text-muted-foreground">
                 Vyber časové období a klikni na &quot;Načíst data&quot;

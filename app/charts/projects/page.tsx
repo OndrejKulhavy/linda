@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import {
   BarChart,
@@ -39,8 +39,8 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleFetch = async () => {
-    if (!from || !to) {
+  const handleFetch = useCallback(async (fromDate: string, toDate: string) => {
+    if (!fromDate || !toDate) {
       setError("Vyber prosím obě data")
       return
     }
@@ -49,7 +49,7 @@ export default function ProjectsPage() {
     setError(null)
 
     try {
-      const response = await fetch(`/api/clockify/projects?from=${from}&to=${to}`)
+      const response = await fetch(`/api/clockify/projects?from=${fromDate}&to=${toDate}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -62,7 +62,11 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    handleFetch(from, to)
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,7 +108,7 @@ export default function ProjectsPage() {
                   onChange={(e) => setTo(e.target.value)}
                 />
               </div>
-              <Button onClick={handleFetch} disabled={loading}>
+              <Button onClick={() => handleFetch(from, to)} disabled={loading}>
                 {loading ? "Načítám..." : "Načíst data"}
               </Button>
             </div>
