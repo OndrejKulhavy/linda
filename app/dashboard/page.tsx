@@ -13,6 +13,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const totalHours = data.reduce((sum, d) => sum + d.hours, 0)
+  const totalGoal = data.reduce((sum, d) => sum + d.goal, 0)
+
   const handleFetch = async () => {
     if (!from || !to) {
       setError("Please select both from and to dates")
@@ -84,7 +87,7 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           {data.length > 0 ? (
-            <WorkHoursChart data={data} />
+            <WorkHoursChart data={data} totalHours={totalHours} totalGoal={totalGoal} />
           ) : (
             <div className="flex items-center justify-center h-[400px] text-muted-foreground">
               Select a date range and click &quot;Fetch Data&quot; to view your work hours
