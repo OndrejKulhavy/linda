@@ -5,16 +5,38 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { ArrowLeft, BookOpen, Briefcase, Trophy, Medal, ChevronRight } from "lucide-react"
+import { ArrowLeft, Trophy, ChevronRight, ChevronLeft, Award, BookOpen } from "lucide-react"
+import { PieChart, Pie, Cell } from "recharts"
 import confetti from "canvas-confetti"
 
-type CompetitionMode = "reading" | "work"
-type RevealStage = "idle" | "countdown" | "reveal-winner" | "reveal-loser"
+type CompetitionMode = "reading" | "40hours"
+type RevealStage = "idle" | "countdown" | "presenting" | "summary"
 
-interface UserHours {
+interface UserBreakdown {
+  name: string
+  total: number
+  reading: number
+  practice: number
+  training: number
+}
+
+interface ReadingUser {
   name: string
   hours: number
+}
+
+const COLORS = {
+  reading: "hsl(142, 76%, 36%)",    // emerald
+  practice: "hsl(221, 83%, 53%)",   // blue
+  training: "hsl(25, 95%, 53%)",    // orange
+}
+
+const chartConfig = {
+  reading: { label: "Reading", color: COLORS.reading },
+  practice: { label: "Practice", color: COLORS.practice },
+  training: { label: "Training", color: COLORS.training },
 }
 
 function getLastWeekRange() {
@@ -73,10 +95,14 @@ export default function CompetitionPage() {
   const [mode, setMode] = useState<CompetitionMode | null>(null)
   const [stage, setStage] = useState<RevealStage>("idle")
   const [countdown, setCountdown] = useState(3)
-  const [userData, setUserData] = useState<UserHours[]>([])
+  const [achievers, setAchievers] = useState<UserBreakdown[]>([])
+  const [readingData, setReadingData] = useState<ReadingUser[]>([])
+  const [currentAchieverIndex, setCurrentAchieverIndex] = useState(0)
   const countdownRef = useRef<NodeJS.Timeout | null>(null)
 
-  const fetchData = useCallback(async (competitionMode: CompetitionMode) => {
+  const TARGET_HOURS = 40
+
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -88,25 +114,37 @@ export default function CompetitionPage() {
         throw new Error(result.error || "Nepodařilo se načíst data")
       }
 
-      const projectsToInclude = competitionMode === "reading" 
-        ? ["Reading"] 
-        : ["Practice", "Reading", "Training"]
-
-      const userHoursMap = new Map<string, number>()
+      // Aggregate hours per user per project type
+      const userDataMap = new Map<string, { reading: number; practice: number; training: number }>()
 
       for (const entry of result.data) {
-        if (projectsToInclude.includes(entry.project)) {
-          const current = userHoursMap.get(entry.name) || 0
-          userHoursMap.set(entry.name, current + entry.hours)
+        const current = userDataMap.get(entry.name) || { reading: 0, practice: 0, training: 0 }
+        
+        if (entry.project === "Reading") {
+          current.reading += entry.hours
+        } else if (entry.project === "Practice") {
+          current.practice += entry.hours
+        } else if (entry.project === "Training") {
+          current.training += entry.hours
         }
+        
+        userDataMap.set(entry.name, current)
       }
 
-      const aggregated: UserHours[] = Array.from(userHoursMap.entries())
-        .map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }))
-        .sort((a, b) => b.hours - a.hours)
+      // Filter users who achieved 40+ hours and create breakdown
+      const achieversList: UserBreakdown[] = Array.from(userDataMap.entries())
+        .map(([name, data]) => ({
+          name,
+          total: Math.round((data.reading + data.practice + data.training) * 10) / 10,
+          reading: Math.round(data.reading * 10) / 10,
+          practice: Math.round(data.practice * 10) / 10,
+          training: Math.round(data.training * 10) / 10,
+        }))
+        .filter(user => user.total >= TARGET_HOURS)
+        .sort((a, b) => b.total - a.total)
 
-      setUserData(aggregated)
-      return aggregated
+      setAchievers(achieversList)
+      return achieversList
     } catch (err) {
       setError(err instanceof Error ? err.message : "Došlo k chybě")
       return []
@@ -115,12 +153,61 @@ export default function CompetitionPage() {
     }
   }, [from, to])
 
-  const startCompetition = async (competitionMode: CompetitionMode) => {
-    setMode(competitionMode)
-    const data = await fetchData(competitionMode)
+  const fetchReadingData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/clockify/users?from=${from}&to=${to}`)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Nepodařilo se načíst data")
+      }
+
+      const userHoursMap = new Map<string, number>()
+
+      for (const entry of result.data) {
+        if (entry.project === "Reading") {
+          const current = userHoursMap.get(entry.name) || 0
+          userHoursMap.set(entry.name, current + entry.hours)
+        }
+      }
+
+      const readingList: ReadingUser[] = Array.from(userHoursMap.entries())
+        .map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }))
+        .sort((a, b) => b.hours - a.hours)
+
+      setReadingData(readingList)
+      return readingList
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Došlo k chybě")
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }, [from, to])
+
+  const startPresentation = async () => {
+    setMode("40hours")
+    const data = await fetchData()
     
     if (data.length === 0) {
-      setError("Žádná data k zobrazení")
+      setError("Nikdo nedosáhl 40 hodin tento týden 😢")
+      return
+    }
+
+    setCurrentAchieverIndex(0)
+    setStage("countdown")
+    setCountdown(3)
+  }
+
+  const startReadingCompetition = async () => {
+    setMode("reading")
+    const data = await fetchReadingData()
+    
+    if (data.length === 0) {
+      setError("Žádná data o čtení")
       return
     }
 
@@ -135,7 +222,7 @@ export default function CompetitionPage() {
           setCountdown(countdown - 1)
         }, 1000)
       } else {
-        setStage("reveal-winner")
+        setStage("presenting")
         fireConfetti()
       }
     }
@@ -148,24 +235,41 @@ export default function CompetitionPage() {
   }, [stage, countdown])
 
   const handleNext = () => {
-    if (stage === "reveal-winner") {
-      setStage("reveal-loser")
-    } else if (stage === "reveal-loser") {
-      setStage("idle")
-      setMode(null)
-      setUserData([])
+    if (mode === "40hours") {
+      if (currentAchieverIndex < achievers.length - 1) {
+        setCurrentAchieverIndex(currentAchieverIndex + 1)
+        fireConfetti()
+      } else {
+        setStage("summary")
+      }
+    } else if (mode === "reading") {
+      setStage("summary")
+    }
+  }
+
+  const handlePrev = () => {
+    if (currentAchieverIndex > 0) {
+      setCurrentAchieverIndex(currentAchieverIndex - 1)
     }
   }
 
   const reset = () => {
     setStage("idle")
     setMode(null)
-    setUserData([])
+    setAchievers([])
+    setReadingData([])
+    setCurrentAchieverIndex(0)
     setCountdown(3)
   }
 
-  const winner = userData[0]
-  const loser = userData[userData.length - 1]
+  const currentAchiever = achievers[currentAchieverIndex]
+  const readingWinner = readingData[0]
+
+  const getPieData = (user: UserBreakdown) => [
+    { name: "Reading", value: user.reading, fill: COLORS.reading },
+    { name: "Practice", value: user.practice, fill: COLORS.practice },
+    { name: "Training", value: user.training, fill: COLORS.training },
+  ].filter(item => item.value > 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -186,7 +290,7 @@ export default function CompetitionPage() {
           <>
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-6">
               <div className="flex items-center gap-2">
-                <label htmlFor="from" className="text-sm text-muted-foreground min-w-[28px]">Od</label>
+                <label htmlFor="from" className="text-sm text-muted-foreground min-w-7">Od</label>
                 <Input
                   id="from"
                   type="date"
@@ -196,7 +300,7 @@ export default function CompetitionPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="to" className="text-sm text-muted-foreground min-w-[28px]">Do</label>
+                <label htmlFor="to" className="text-sm text-muted-foreground min-w-7">Do</label>
                 <Input
                   id="to"
                   type="date"
@@ -211,7 +315,7 @@ export default function CompetitionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card 
                 className="cursor-pointer transition-all hover:shadow-lg hover:border-emerald-500/50 active:scale-[0.98]"
-                onClick={() => !loading && startCompetition("reading")}
+                onClick={() => !loading && startReadingCompetition()}
               >
                 <CardHeader className="p-4 sm:p-6">
                   <div className="flex items-center gap-3">
@@ -227,17 +331,19 @@ export default function CompetitionPage() {
               </Card>
 
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:border-blue-500/50 active:scale-[0.98]"
-                onClick={() => !loading && startCompetition("work")}
+                className="cursor-pointer transition-all hover:shadow-lg hover:border-yellow-500/50 active:scale-[0.98]"
+                onClick={() => !loading && startPresentation()}
               >
                 <CardHeader className="p-4 sm:p-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-blue-500" />
+                    <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                      <Award className="w-5 h-5 text-yellow-500" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">Hodiny</CardTitle>
-                      <p className="text-sm text-muted-foreground">Practice + Reading + Training</p>
+                      <CardTitle className="text-lg">40 hodin týdně 🎯</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Kdo splnil týdenní cíl?
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
@@ -260,84 +366,202 @@ export default function CompetitionPage() {
                   {countdown || "!"}
                 </div>
                 <p className="text-lg text-muted-foreground mt-4">
-                  {mode === "reading" ? "Čtení" : "Hodiny práce"}
+                  {mode === "reading" ? "Kdo četl nejvíce?" : "Kdo splnil 40 hodin?"}
                 </p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {stage === "reveal-winner" && winner && (
+        {stage === "presenting" && mode === "reading" && readingWinner && (
           <Card>
             <CardHeader className="p-4 sm:p-6 text-center">
               <div className="flex justify-center mb-2">
                 <Trophy className="h-12 w-12 text-yellow-500" />
               </div>
-              <CardTitle className="text-lg text-muted-foreground">Vítěz</CardTitle>
+              <CardTitle className="text-lg text-muted-foreground">Vítěz čtení 📚</CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 text-center">
               <div className="text-4xl sm:text-6xl font-bold text-foreground mb-2">
-                {winner.name}
+                {readingWinner.name}
               </div>
               <div className="text-2xl sm:text-3xl font-semibold text-muted-foreground mb-6">
-                {winner.hours} hodin
+                {readingWinner.hours} hodin čtení
               </div>
-              <p className="text-sm text-muted-foreground mb-6">
-                {mode === "reading" ? "Nejvíce hodin čtení" : "Nejvíce odpracovaných hodin"}
-              </p>
               <Button onClick={handleNext}>
-                Další <ChevronRight className="ml-2 h-4 w-4" />
+                Zobrazit žebříček <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {stage === "reveal-loser" && loser && (
+        {stage === "presenting" && mode === "40hours" && currentAchiever && (
           <Card>
             <CardHeader className="p-4 sm:p-6 text-center">
               <div className="flex justify-center mb-2">
-                <Medal className="h-12 w-12 text-muted-foreground" />
+                <Trophy className="h-12 w-12 text-yellow-500" />
               </div>
-              <CardTitle className="text-lg text-muted-foreground">Nejméně hodin</CardTitle>
+              <CardTitle className="text-lg text-muted-foreground">
+                {currentAchieverIndex + 1} z {achievers.length} 🎉
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 text-center">
               <div className="text-4xl sm:text-6xl font-bold text-foreground mb-2">
-                {loser.name}
+                {currentAchiever.name}
               </div>
               <div className="text-2xl sm:text-3xl font-semibold text-muted-foreground mb-6">
-                {loser.hours} hodin
+                {currentAchiever.total} hodin
               </div>
-              <p className="text-sm text-muted-foreground mb-6">
-                {mode === "reading" ? "Nejméně hodin čtení" : "Nejméně odpracovaných hodin"}
-              </p>
               
-              <div className="border rounded-lg p-4 mb-6">
-                <h3 className="font-semibold mb-3">Celkové pořadí</h3>
-                <div className="space-y-2">
-                  {userData.map((user, index) => (
-                    <div
-                      key={user.name}
-                      className={`flex items-center justify-between p-2 rounded ${
-                        index === 0 
-                          ? "bg-yellow-500/10" 
-                          : index === userData.length - 1 
-                          ? "bg-muted"
-                          : ""
-                      }`}
+              <div className="flex justify-center mb-6">
+                <ChartContainer config={chartConfig} className="h-[200px] w-[200px]">
+                  <PieChart>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Pie
+                      data={getPieData(currentAchiever)}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={80}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium w-6">{index + 1}.</span>
-                        <span className="text-sm">{user.name}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground font-mono">{user.hours}h</span>
-                    </div>
-                  ))}
+                      {getPieData(currentAchiever).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+              </div>
+
+              <div className="flex justify-center gap-4 mb-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.reading }} />
+                  <span>Reading: {currentAchiever.reading}h</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.practice }} />
+                  <span>Practice: {currentAchiever.practice}h</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.training }} />
+                  <span>Training: {currentAchiever.training}h</span>
                 </div>
               </div>
 
-              <Button onClick={reset}>
-                Znovu
-              </Button>
+              <div className="flex justify-center gap-2">
+                {currentAchieverIndex > 0 && (
+                  <Button variant="outline" onClick={handlePrev}>
+                    <ChevronLeft className="mr-2 h-4 w-4" /> Předchozí
+                  </Button>
+                )}
+                <Button onClick={handleNext}>
+                  {currentAchieverIndex < achievers.length - 1 ? (
+                    <>Další <ChevronRight className="ml-2 h-4 w-4" /></>
+                  ) : (
+                    <>Souhrn <ChevronRight className="ml-2 h-4 w-4" /></>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {stage === "summary" && mode === "reading" && (
+          <Card>
+            <CardHeader className="p-4 sm:p-6 text-center">
+              <div className="flex justify-center mb-2">
+                <Trophy className="h-12 w-12 text-yellow-500" />
+              </div>
+              <CardTitle className="text-lg text-muted-foreground">Žebříček čtení 📚</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto mb-6">
+                {readingData.map((user, index) => (
+                  <div
+                    key={user.name}
+                    className={`flex items-center justify-between p-3 rounded ${
+                      index === 0 
+                        ? "bg-yellow-500/10 border border-yellow-500/30" 
+                        : "bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-lg font-bold w-8 ${index === 0 ? "text-yellow-500" : ""}`}>
+                        {index + 1}.
+                      </span>
+                      <span className={`font-medium ${index === 0 ? "text-yellow-500" : ""}`}>
+                        {user.name}
+                      </span>
+                    </div>
+                    <span className={`font-mono ${index === 0 ? "text-yellow-500 font-bold" : "text-muted-foreground"}`}>
+                      {user.hours}h
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-center">
+                <Button onClick={reset}>
+                  Znovu
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {stage === "summary" && mode === "40hours" && (
+          <Card>
+            <CardHeader className="p-4 sm:p-6 text-center">
+              <div className="flex justify-center mb-2">
+                <Trophy className="h-12 w-12 text-yellow-500" />
+              </div>
+              <CardTitle className="text-lg text-muted-foreground">
+                {achievers.length} {achievers.length === 1 ? "člověk splnil" : achievers.length < 5 ? "lidé splnili" : "lidí splnilo"} 40 hodin! 🎉
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {achievers.map((user, index) => (
+                  <div key={user.name} className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg font-bold">{index + 1}.</span>
+                      <span className="font-semibold">{user.name}</span>
+                      <span className="text-muted-foreground ml-auto">{user.total}h</span>
+                    </div>
+                    <div className="flex justify-center">
+                      <ChartContainer config={chartConfig} className="h-[100px] w-[100px]">
+                        <PieChart>
+                          <Pie
+                            data={getPieData(user)}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={20}
+                            outerRadius={40}
+                          >
+                            {getPieData(user).map((entry, idx) => (
+                              <Cell key={`cell-${idx}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ChartContainer>
+                    </div>
+                    <div className="flex justify-center gap-2 text-xs mt-2">
+                      <span style={{ color: COLORS.reading }}>R: {user.reading}h</span>
+                      <span style={{ color: COLORS.practice }}>P: {user.practice}h</span>
+                      <span style={{ color: COLORS.training }}>T: {user.training}h</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-center">
+                <Button onClick={reset}>
+                  Znovu
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
