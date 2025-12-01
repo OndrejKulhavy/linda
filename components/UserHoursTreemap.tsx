@@ -1,8 +1,17 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Treemap, ResponsiveContainer, Tooltip } from "recharts"
+import { Treemap, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend } from "recharts"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Spinner } from "@/components/ui/spinner"
 
 export interface UserProjectHours {
   name: string
@@ -10,8 +19,16 @@ export interface UserProjectHours {
   project: string
 }
 
+interface UserDetails {
+  user: { id: string; name: string }
+  projects: { name: string; hours: number }[]
+  tasks: { description: string; project: string; hours: number; date: string }[]
+  totalHours: number
+}
+
 interface TreemapChartProps {
   data: UserProjectHours[]
+  dateRange?: { from: string; to: string }
 }
 
 const COLORS = [
@@ -28,15 +45,23 @@ interface TreemapNodeProps {
   name: string
   hours: number
   color: string
+  onUserClick?: (userName: string) => void
 }
 
 function CustomTreemapContent(props: TreemapNodeProps) {
-  const { x, y, width, height, name, hours, color } = props
+  const { x, y, width, height, name, hours, color, onUserClick } = props
 
   if (width < 30 || height < 30) return null
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onUserClick && name) {
+      onUserClick(name)
+    }
+  }
+
   return (
-    <g>
+    <g onClick={handleClick} style={{ cursor: "pointer" }}>
       <rect
         x={x}
         y={y}
@@ -46,6 +71,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
         stroke="#fff"
         strokeWidth={2}
         rx={4}
+        className="transition-opacity hover:opacity-80"
       />
       {width > 60 && height > 40 && (
         <>
@@ -55,6 +81,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
             fill="#fff"
             fontSize={width > 100 ? 14 : 11}
             fontWeight="500"
+            style={{ pointerEvents: "none" }}
           >
             {name.length > width / 8 ? `${name.slice(0, Math.floor(width / 8))}...` : name}
           </text>
@@ -64,6 +91,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
             fill="#fff"
             fontSize={width > 100 ? 24 : 16}
             fontWeight="bold"
+            style={{ pointerEvents: "none" }}
           >
             {hours}
           </text>
@@ -73,13 +101,42 @@ function CustomTreemapContent(props: TreemapNodeProps) {
   )
 }
 
-export function UserHoursTreemap({ data }: TreemapChartProps) {
+export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
   const projects = useMemo(() => {
     const projectSet = new Set(data.map((d) => d.project))
     return Array.from(projectSet)
   }, [data])
 
   const [activeProjects, setActiveProjects] = useState<Set<string>>(new Set(projects))
+  const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null)
+  const [loadingDetails, setLoadingDetails] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  const handleUserClick = async (userName: string) => {
+    setSelectedUser(userName)
+    setDialogOpen(true)
+    setLoadingDetails(true)
+    setUserDetails(null)
+
+    try {
+      const params = new URLSearchParams()
+      if (dateRange?.from) params.set("from", dateRange.from)
+      if (dateRange?.to) params.set("to", dateRange.to)
+      params.set("userName", userName)
+
+      const response = await fetch(`/api/clockify/users/details?${params.toString()}`)
+      const result = await response.json()
+
+      if (response.ok) {
+        setUserDetails(result)
+      }
+    } catch (error) {
+      console.error("Failed to fetch user details:", error)
+    } finally {
+      setLoadingDetails(false)
+    }
+  }
 
   const toggleProject = (project: string) => {
     setActiveProjects((prev) => {
@@ -148,7 +205,18 @@ export function UserHoursTreemap({ data }: TreemapChartProps) {
               aspectRatio={4 / 3}
               stroke="#fff"
               animationDuration={300}
-              content={<CustomTreemapContent x={0} y={0} width={0} height={0} name="" hours={0} color="" />}
+              content={
+                <CustomTreemapContent 
+                  x={0} 
+                  y={0} 
+                  width={0} 
+                  height={0} 
+                  name="" 
+                  hours={0} 
+                  color="" 
+                  onUserClick={handleUserClick}
+                />
+              }
             >
               <Tooltip
                 content={({ payload }) => {
@@ -157,7 +225,8 @@ export function UserHoursTreemap({ data }: TreemapChartProps) {
                     return (
                       <div className="bg-popover border rounded-lg p-3 shadow-lg">
                         <p className="font-semibold">{item.name}</p>
-                        <p className="text-muted-foreground">{item.hours} hours</p>
+                        <p className="text-muted-foreground">{item.hours} hodin</p>
+                        <p className="text-xs text-muted-foreground mt-1">Klikni pro detail</p>
                       </div>
                     )
                   }
@@ -172,6 +241,86 @@ export function UserHoursTreemap({ data }: TreemapChartProps) {
           </div>
         )}
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedUser}</DialogTitle>
+            <DialogDescription>
+              {userDetails && `Celkem ${userDetails.totalHours} hodin`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingDetails ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner className="w-8 h-8" />
+            </div>
+          ) : userDetails ? (
+            <div className="space-y-6">
+              {/* Pie Chart for Projects */}
+              <div>
+                <h3 className="text-sm font-medium mb-3">Projekty</h3>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={userDetails.projects}
+                        dataKey="hours"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label={({ name, hours }) => `${name}: ${hours}h`}
+                        labelLine={false}
+                      >
+                        {userDetails.projects.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => [`${value} hodin`, "Čas"]}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Tasks List */}
+              <div>
+                <h3 className="text-sm font-medium mb-3">Úkoly ({userDetails.tasks.length})</h3>
+                <ScrollArea className="h-[200px] rounded-md border">
+                  <div className="p-4 space-y-3">
+                    {userDetails.tasks.map((task, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start justify-between gap-4 pb-3 border-b last:border-0 last:pb-0"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{task.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {task.project}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{task.date}</span>
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold whitespace-nowrap">
+                          {task.hours}h
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              Nepodařilo se načíst data
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

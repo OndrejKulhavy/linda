@@ -104,7 +104,7 @@ export default function UserHoursPage() {
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
             {data.length > 0 ? (
-              <UserHoursTreemap data={data} />
+              <UserHoursTreemap data={data} dateRange={{ from, to }} />
             ) : (
               <div className="flex items-center justify-center h-[300px] sm:h-[500px] text-muted-foreground text-center px-4">
                 Vyber časové období a klikni na &quot;Načíst data&quot;
