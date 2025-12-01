@@ -8,13 +8,13 @@ export default function Home() {
       <div className="container mx-auto px-4 py-12 sm:py-24">
         <div className="text-center mb-12 sm:mb-20">
           <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 mb-4 sm:mb-6">
-            <span className="text-3xl sm:text-4xl">📊</span>
+            <span className="text-3xl sm:text-4xl">L</span>
           </div>
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-3 sm:mb-4 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text">
             Linda
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto px-4">
-            Tvůj přehled odpracovaných hodin
+            Jsem geniální asistentka týmu Tuuli, kterému generuji grafy o jejich výkonnosti. 
           </p>
         </div>
 
@@ -27,11 +27,11 @@ export default function Home() {
                 </div>
                 <div className="space-y-1.5 sm:space-y-2">
                   <CardTitle className="flex items-center justify-between text-lg sm:text-xl">
-                    Uživatelé
+                    Družstevníci
                     <ArrowRight className="w-5 h-5 text-muted-foreground opacity-100 sm:opacity-0 translate-x-0 sm:-translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
                   </CardTitle>
                   <CardDescription className="text-sm leading-relaxed">
-                    Odpracované hodiny jednotlivých členů týmu
+                    Kdo jak maká na JZD? Tady to zjistíš!
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -46,11 +46,11 @@ export default function Home() {
                 </div>
                 <div className="space-y-1.5 sm:space-y-2">
                   <CardTitle className="flex items-center justify-between text-lg sm:text-xl">
-                    Časová osa
+                    Čtyřicethodin
                     <ArrowRight className="w-5 h-5 text-muted-foreground opacity-100 sm:opacity-0 translate-x-0 sm:-translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
                   </CardTitle>
                   <CardDescription className="text-sm leading-relaxed">
-                    Vývoj odpracovaných hodin v čase
+                    Kolik hodin už uteklo? Časová osa neúprosně běží!
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -65,11 +65,11 @@ export default function Home() {
                 </div>
                 <div className="space-y-1.5 sm:space-y-2">
                   <CardTitle className="flex items-center justify-between text-lg sm:text-xl">
-                    Projekty
+                    Koláček
                     <ArrowRight className="w-5 h-5 text-muted-foreground opacity-100 sm:opacity-0 translate-x-0 sm:-translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
                   </CardTitle>
                   <CardDescription className="text-sm leading-relaxed">
-                    Přehled hodin na jednotlivých projektech
+                    Kdo si ukrojil největší díl koláče? Projekty v kostce!
                   </CardDescription>
                 </div>
               </CardHeader>
