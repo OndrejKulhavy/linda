@@ -468,7 +468,7 @@ export default function CompetitionPage() {
         )}
 
         {stage === "summary" && mode === "reading" && (
-          <Card>
+          <Card className="max-w-md mx-auto">
             <CardHeader className="p-4 sm:p-6 text-center">
               <div className="flex justify-center mb-2">
                 <Trophy className="h-12 w-12 text-yellow-500" />
