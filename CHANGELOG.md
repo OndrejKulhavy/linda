@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024-12-06]
 
 ### Added
+- Changelog system with API endpoint and interactive dialog ([271919a](https://github.com/OndrejKulhavy/linda/commit/271919a))
+  - API route to fetch and parse CHANGELOG.md content
+  - ChangelogDialog component with categorized change display
+  - "What's New" badge on homepage to highlight recent updates
+  - localStorage tracking to show badge only for new changes
+- Prompt template for updating changelog with git commit analysis ([40789c8](https://github.com/OndrejKulhavy/linda/commit/40789c8))
+- CHANGELOG.md file to document all project updates and notable changes ([5eabddf](https://github.com/OndrejKulhavy/linda/commit/5eabddf))
 - Comprehensive project overview, features, and setup instructions in README ([665b04f](https://github.com/OndrejKulhavy/linda/commit/665b04f))
 - Highlight feature for hours below 40 in UserHoursTreemap ([8dcf8c3](https://github.com/OndrejKulhavy/linda/commit/8dcf8c3))
 - Clockify report link generation in UserHoursTreemap ([ee74793](https://github.com/OndrejKulhavy/linda/commit/ee74793))
