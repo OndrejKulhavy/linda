@@ -32,7 +32,7 @@ export interface UserProjectHours {
 interface UserDetails {
   user: { id: string; name: string }
   projects: { name: string; hours: number }[]
-  tasks: { description: string; project: string; hours: number; date: string }[]
+  tasks: { description: string; project: string; task: string | null; hours: number; date: string }[]
   totalHours: number
 }
 
@@ -187,18 +187,11 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
     return colors
   }, [projects])
 
-  // Filter tasks to exclude entries without meaningful descriptions
-  const filteredTasks = useMemo(() => {
-    if (!userDetails) return []
-    return userDetails.tasks.filter(
-      (task) => task.description && task.description !== "Bez popisu"
-    )
-  }, [userDetails])
-
-  // Group tasks by date
+  // Group tasks by date (show all tasks)
   const groupedTasks = useMemo(() => {
-    const grouped = new Map<string, typeof filteredTasks>()
-    for (const task of filteredTasks) {
+    if (!userDetails) return []
+    const grouped = new Map<string, typeof userDetails.tasks>()
+    for (const task of userDetails.tasks) {
       const date = task.date
       if (!grouped.has(date)) {
         grouped.set(date, [])
@@ -206,7 +199,7 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
       grouped.get(date)!.push(task)
     }
     return Array.from(grouped.entries()).sort((a, b) => b[0].localeCompare(a[0]))
-  }, [filteredTasks])
+  }, [userDetails])
 
   const UserDetailsContent = () => {
     if (loadingDetails) {
@@ -266,9 +259,9 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
         <div>
           <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
             <ListTodo className="w-4 h-4" />
-            Úkoly s popisem ({filteredTasks.length})
+            Časové záznamy ({userDetails.tasks.length})
           </h3>
-          {filteredTasks.length > 0 ? (
+          {userDetails.tasks.length > 0 ? (
             <div className="space-y-4">
               {groupedTasks.map(([date, tasks]) => (
                 <div key={date} className="space-y-2">
@@ -285,7 +278,14 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
                       className="flex items-start justify-between gap-3 p-3 rounded-md bg-card border hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex-1 min-w-0 space-y-1.5">
-                        <p className="text-sm font-medium leading-snug">{task.description}</p>
+                        {task.task && (
+                          <p className="text-xs font-medium text-primary uppercase tracking-wide">
+                            {task.task}
+                          </p>
+                        )}
+                        <p className="text-sm font-medium leading-snug">
+                          {task.description}
+                        </p>
                         <Badge
                           variant="secondary"
                           className="text-xs font-normal"
@@ -309,8 +309,7 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 px-4 rounded-lg border bg-muted/30 text-muted-foreground">
               <ListTodo className="w-8 h-8 mb-2 opacity-50" />
-              <p className="text-sm text-center">Žádné úkoly s popisem</p>
-              <p className="text-xs text-center mt-1">Všechny záznamy jsou bez popisu</p>
+              <p className="text-sm text-center">Žádné časové záznamy</p>
             </div>
           )}
         </div>

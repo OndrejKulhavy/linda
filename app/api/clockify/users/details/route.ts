@@ -6,6 +6,7 @@ interface ClockifyTimeEntry {
   description: string
   userId: string
   projectId: string
+  taskId: string | null
   timeInterval: {
     start: string
     end: string | null
@@ -21,6 +22,12 @@ interface ClockifyUser {
 interface ClockifyProject {
   id: string
   name: string
+}
+
+interface ClockifyTask {
+  id: string
+  name: string
+  projectId: string
 }
 
 function parseDuration(duration: string | null): number {
@@ -70,6 +77,26 @@ export async function GET(request: NextRequest) {
     const projects: ClockifyProject[] = await projectsRes.json()
     const projectMap = new Map(projects.map((p) => [p.id, p.name]))
 
+    // Fetch tasks for all projects
+    const taskMap = new Map<string, string>()
+    for (const project of projects) {
+      try {
+        const tasksRes = await fetch(
+          `https://api.clockify.me/api/v1/workspaces/${workspaceId}/projects/${project.id}/tasks`,
+          { headers: { "X-Api-Key": apiKey } }
+        )
+        if (tasksRes.ok) {
+          const tasks: ClockifyTask[] = await tasksRes.json()
+          tasks.forEach((task) => {
+            taskMap.set(task.id, task.name)
+          })
+        }
+      } catch (error) {
+        // Continue if task fetching fails for a project
+        console.error(`Failed to fetch tasks for project ${project.id}:`, error)
+      }
+    }
+
     // Fetch all users to find the user by name
     const usersRes = await fetch(
       `https://api.clockify.me/api/v1/workspaces/${workspaceId}/users`,
@@ -103,11 +130,12 @@ export async function GET(request: NextRequest) {
 
     // Aggregate hours by project
     const projectHours = new Map<string, number>()
-    const tasks: { description: string; project: string; hours: number; date: string }[] = []
+    const tasks: { description: string; project: string; task: string | null; hours: number; date: string }[] = []
 
     for (const entry of entries) {
       const hours = parseDuration(entry.timeInterval.duration)
       const projectName = projectMap.get(entry.projectId) || "No Project"
+      const taskName = entry.taskId ? taskMap.get(entry.taskId) || null : null
 
       // Aggregate by project
       projectHours.set(projectName, (projectHours.get(projectName) || 0) + hours)
@@ -116,6 +144,7 @@ export async function GET(request: NextRequest) {
       tasks.push({
         description: entry.description || "Bez popisu",
         project: projectName,
+        task: taskName,
         hours: Math.round(hours * 100) / 100,
         date: entry.timeInterval.start.split("T")[0],
       })
