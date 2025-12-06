@@ -61,14 +61,16 @@ interface TreemapNodeProps {
 function CustomTreemapContent(props: TreemapNodeProps) {
   const { x, y, width, height, name, hours, color, onUserClick } = props
 
-  if (width < 30 || height < 30) return null
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (onUserClick && name) {
       onUserClick(name)
     }
   }
+
+  // More aggressive text display - show on smaller blocks
+  const showText = width > 45 && height > 30
+  const showOnlyHours = !showText && width > 30 && height > 25
 
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
@@ -83,29 +85,42 @@ function CustomTreemapContent(props: TreemapNodeProps) {
         rx={4}
         className="transition-opacity hover:opacity-80"
       />
-      {width > 60 && height > 40 && (
+      {showText && (
         <>
           <text
-            x={x + 8}
-            y={y + 20}
+            x={x + 6}
+            y={y + 16}
             fill="#fff"
-            fontSize={width > 100 ? 14 : 11}
+            fontSize={width > 100 ? 14 : width > 70 ? 12 : 10}
             fontWeight="500"
             style={{ pointerEvents: "none" }}
           >
-            {name.length > width / 8 ? `${name.slice(0, Math.floor(width / 8))}...` : name}
+            {name.length > width / 7 ? `${name.slice(0, Math.floor(width / 7))}...` : name}
           </text>
           <text
-            x={x + 8}
-            y={y + height - 10}
+            x={x + 6}
+            y={y + height - 8}
             fill="#fff"
-            fontSize={width > 100 ? 24 : 16}
+            fontSize={width > 100 ? 22 : width > 70 ? 18 : 14}
             fontWeight="bold"
             style={{ pointerEvents: "none" }}
           >
             {hours}
           </text>
         </>
+      )}
+      {showOnlyHours && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2 + 5}
+          fill="#fff"
+          fontSize={12}
+          fontWeight="bold"
+          textAnchor="middle"
+          style={{ pointerEvents: "none" }}
+        >
+          {hours}
+        </text>
       )}
     </g>
   )
@@ -364,13 +379,13 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
         ))}
       </div>
 
-      <div className="w-full h-[300px] sm:h-[500px] bg-muted/20 rounded-lg p-2">
+      <div className="w-full h-[500px] bg-muted/20 rounded-lg p-2">
         {filteredData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <Treemap
               data={filteredData}
               dataKey="hours"
-              aspectRatio={4 / 3}
+              aspectRatio={isMobile ? 1 / 1.5 : 4 / 3}
               stroke="#fff"
               animationDuration={300}
               content={
