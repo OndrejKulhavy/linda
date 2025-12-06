@@ -118,7 +118,12 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
     return Array.from(projectSet)
   }, [data])
 
-  const [activeProjects, setActiveProjects] = useState<Set<string>>(new Set(projects))
+  const defaultActiveProjects = useMemo(() => {
+    const allowedProjects = new Set(["Practice", "Reading", "Training"])
+    return new Set(projects.filter((p) => allowedProjects.has(p)))
+  }, [projects])
+
+  const [activeProjects, setActiveProjects] = useState<Set<string>>(defaultActiveProjects)
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null)
   const [loadingDetails, setLoadingDetails] = useState(false)
@@ -275,7 +280,11 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
                   {tasks.map((task, index) => (
                     <div
                       key={`${date}-${index}`}
-                      className="flex items-start justify-between gap-3 p-2.5 rounded-md bg-card border hover:bg-accent/50 transition-colors"
+                      className="flex items-start justify-between gap-3 p-2.5 rounded-md border hover:opacity-90 transition-opacity"
+                      style={{
+                        backgroundColor: `${projectColors[task.project]}15`,
+                        borderColor: `${projectColors[task.project]}40`,
+                      }}
                     >
                       <div className="flex-1 min-w-0 space-y-1">
                         <p className="text-sm font-medium leading-tight">
@@ -286,9 +295,8 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
                             variant="secondary"
                             className="text-xs font-normal py-0 h-5"
                             style={{
-                              backgroundColor: `${projectColors[task.project]}20`,
-                              borderColor: projectColors[task.project],
-                              color: projectColors[task.project],
+                              backgroundColor: projectColors[task.project],
+                              color: "#fff",
                             }}
                           >
                             {task.project}
