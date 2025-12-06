@@ -47,7 +47,15 @@ export default function RootLayout({
               >
                 Ondřej Kulhavý
               </a>{" "}
-              for Tuuli
+              for Tuuli •{" "}
+              <a
+                href="https://github.com/OndrejKulhavy/linda"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors underline underline-offset-4"
+              >
+                GitHub
+              </a>
             </footer>
           </div>
         </ThemeProvider>
