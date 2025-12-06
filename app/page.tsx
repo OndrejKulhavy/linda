@@ -1,14 +1,64 @@
+"use client"
+
 import Link from "next/link"
+import { useState, useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { BarChart3, Users, Clock, ArrowRight, Trophy, AlertCircle, Coffee } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { BarChart3, Users, Clock, ArrowRight, Trophy, AlertCircle, Coffee, Sparkles } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ChangelogDialog } from "@/components/ChangelogDialog"
 
 export default function Home() {
+  const [changelogOpen, setChangelogOpen] = useState(false)
+  const [hasNewChanges, setHasNewChanges] = useState(false)
+
+  useEffect(() => {
+    // Check if there are new changes since last view
+    const lastViewed = localStorage.getItem('lastViewedChangelog')
+    const latestChangeDate = '2024-12-06' // Update this when adding new changes
+    
+    if (!lastViewed) {
+      // First time visitor - show badge
+      setHasNewChanges(true)
+    } else {
+      const lastViewedDate = new Date(lastViewed)
+      const latestDate = new Date(latestChangeDate)
+      
+      if (latestDate > lastViewedDate) {
+        setHasNewChanges(true)
+      }
+    }
+  }, [])
+
+  const handleOpenChangelog = () => {
+    setChangelogOpen(true)
+    setHasNewChanges(false)
+  }
+
   return (
     <div className="min-h-screen bg-background relative">
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleOpenChangelog}
+          className="relative pointer-events-auto"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Co je nového?
+          {hasNewChanges && (
+            <Badge 
+              variant="destructive" 
+              className="absolute -top-1 -right-1 h-2 w-2 p-0 rounded-full"
+            >
+              <span className="sr-only">New changes</span>
+            </Badge>
+          )}
+        </Button>
         <ThemeToggle />
       </div>
+      <ChangelogDialog open={changelogOpen} onOpenChange={setChangelogOpen} />
       <div className="container mx-auto px-4 py-12 sm:py-24 relative z-10">
         <div className="text-center mb-12 sm:mb-20">
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-3 sm:mb-4">
