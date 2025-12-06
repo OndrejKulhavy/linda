@@ -10,8 +10,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Spinner } from "@/components/ui/spinner"
+import { Separator } from "@/components/ui/separator"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { FolderKanban, ListTodo } from "lucide-react"
 
 export interface UserProjectHours {
   name: string
@@ -102,6 +112,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
 }
 
 export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
+  const isMobile = useIsMobile()
   const projects = useMemo(() => {
     const projectSet = new Set(data.map((d) => d.project))
     return Array.from(projectSet)
@@ -176,6 +187,137 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
     return colors
   }, [projects])
 
+  // Filter tasks to exclude entries without meaningful descriptions
+  const filteredTasks = useMemo(() => {
+    if (!userDetails) return []
+    return userDetails.tasks.filter(
+      (task) => task.description && task.description !== "Bez popisu"
+    )
+  }, [userDetails])
+
+  // Group tasks by date
+  const groupedTasks = useMemo(() => {
+    const grouped = new Map<string, typeof filteredTasks>()
+    for (const task of filteredTasks) {
+      const date = task.date
+      if (!grouped.has(date)) {
+        grouped.set(date, [])
+      }
+      grouped.get(date)!.push(task)
+    }
+    return Array.from(grouped.entries()).sort((a, b) => b[0].localeCompare(a[0]))
+  }, [filteredTasks])
+
+  const UserDetailsContent = () => {
+    if (loadingDetails) {
+      return (
+        <div className="flex items-center justify-center py-16">
+          <Spinner className="w-10 h-10" />
+        </div>
+      )
+    }
+
+    if (!userDetails) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <p className="text-sm">Nepodařilo se načíst data</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Projects Distribution */}
+        <div>
+          <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+            <FolderKanban className="w-4 h-4" />
+            Distribuce podle projektů
+          </h3>
+          <div className="h-[280px] bg-muted/30 rounded-lg p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={userDetails.projects}
+                  dataKey="hours"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={isMobile ? 70 : 90}
+                  label={({ name, hours }) => `${name}: ${hours}h`}
+                  labelLine={false}
+                >
+                  {userDetails.projects.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => [`${value} hodin`, "Čas"]} />
+                <Legend 
+                  wrapperStyle={{ fontSize: isMobile ? "12px" : "14px" }}
+                  iconSize={isMobile ? 10 : 14}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Tasks List */}
+        <div>
+          <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+            <ListTodo className="w-4 h-4" />
+            Úkoly s popisem ({filteredTasks.length})
+          </h3>
+          {filteredTasks.length > 0 ? (
+            <div className="space-y-4">
+              {groupedTasks.map(([date, tasks]) => (
+                <div key={date} className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide sticky top-0 bg-background/95 backdrop-blur py-1 z-10">
+                    {new Date(date).toLocaleDateString("cs-CZ", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </div>
+                  {tasks.map((task, index) => (
+                    <div
+                      key={`${date}-${index}`}
+                      className="flex items-start justify-between gap-3 p-3 rounded-md bg-card border hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <p className="text-sm font-medium leading-snug">{task.description}</p>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-normal"
+                          style={{
+                            backgroundColor: `${projectColors[task.project]}20`,
+                            borderColor: projectColors[task.project],
+                            color: projectColors[task.project],
+                          }}
+                        >
+                          {task.project}
+                        </Badge>
+                      </div>
+                      <div className="text-sm font-bold whitespace-nowrap text-primary">
+                        {task.hours}h
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 px-4 rounded-lg border bg-muted/30 text-muted-foreground">
+              <ListTodo className="w-8 h-8 mb-2 opacity-50" />
+              <p className="text-sm text-center">Žádné úkoly s popisem</p>
+              <p className="text-xs text-center mt-1">Všechny záznamy jsou bez popisu</p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full">
       <div className="flex flex-wrap gap-2 mb-4">
@@ -242,85 +384,37 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
         )}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>{selectedUser}</DialogTitle>
-            <DialogDescription>
-              {userDetails && `Celkem ${userDetails.totalHours} hodin`}
-            </DialogDescription>
-          </DialogHeader>
-
-          {loadingDetails ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner className="w-8 h-8" />
+      {isMobile ? (
+        <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="text-left pb-4">
+              <DrawerTitle className="text-xl">{selectedUser}</DrawerTitle>
+              {userDetails && (
+                <DrawerDescription className="text-sm">
+                  Přehled odpracovaného času
+                </DrawerDescription>
+              )}
+            </DrawerHeader>
+            <div className="px-4 pb-6 overflow-y-auto">
+              <UserDetailsContent />
             </div>
-          ) : userDetails ? (
-            <div className="space-y-6">
-              {/* Pie Chart for Projects */}
-              <div>
-                <h3 className="text-sm font-medium mb-3">Projekty</h3>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={userDetails.projects}
-                        dataKey="hours"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        label={({ name, hours }) => `${name}: ${hours}h`}
-                        labelLine={false}
-                      >
-                        {userDetails.projects.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number) => [`${value} hodin`, "Čas"]}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Tasks List */}
-              <div>
-                <h3 className="text-sm font-medium mb-3">Úkoly ({userDetails.tasks.length})</h3>
-                <ScrollArea className="h-[200px] rounded-md border">
-                  <div className="p-4 space-y-3">
-                    {userDetails.tasks.map((task, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start justify-between gap-4 pb-3 border-b last:border-0 last:pb-0"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{task.description}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="text-xs">
-                              {task.project}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{task.date}</span>
-                          </div>
-                        </div>
-                        <div className="text-sm font-semibold whitespace-nowrap">
-                          {task.hours}h
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              Nepodařilo se načíst data
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="text-2xl">{selectedUser}</DialogTitle>
+              {userDetails && (
+                <DialogDescription className="text-base">
+                  Přehled odpracovaného času za vybrané období
+                </DialogDescription>
+              )}
+            </DialogHeader>
+            <UserDetailsContent />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
