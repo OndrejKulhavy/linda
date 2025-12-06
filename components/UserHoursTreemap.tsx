@@ -275,28 +275,30 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
                   {tasks.map((task, index) => (
                     <div
                       key={`${date}-${index}`}
-                      className="flex items-start justify-between gap-3 p-3 rounded-md bg-card border hover:bg-accent/50 transition-colors"
+                      className="flex items-start justify-between gap-3 p-2.5 rounded-md bg-card border hover:bg-accent/50 transition-colors"
                     >
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        {task.task && (
-                          <p className="text-xs font-medium text-primary uppercase tracking-wide">
-                            {task.task}
-                          </p>
-                        )}
-                        <p className="text-sm font-medium leading-snug">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="text-sm font-medium leading-tight">
                           {task.description}
                         </p>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs font-normal"
-                          style={{
-                            backgroundColor: `${projectColors[task.project]}20`,
-                            borderColor: projectColors[task.project],
-                            color: projectColors[task.project],
-                          }}
-                        >
-                          {task.project}
-                        </Badge>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-normal py-0 h-5"
+                            style={{
+                              backgroundColor: `${projectColors[task.project]}20`,
+                              borderColor: projectColors[task.project],
+                              color: projectColors[task.project],
+                            }}
+                          >
+                            {task.project}
+                          </Badge>
+                          {task.task && (
+                            <span className="text-xs text-muted-foreground">
+                              • {task.task}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-sm font-bold whitespace-nowrap text-primary">
                         {task.hours}h
