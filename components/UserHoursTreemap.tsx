@@ -21,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { FolderKanban, ListTodo } from "lucide-react"
+import { FolderKanban, ListTodo, ExternalLink } from "lucide-react"
 
 export interface UserProjectHours {
   name: string
@@ -223,8 +223,25 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
       )
     }
 
+    // Generate Clockify URL for the user
+    const clockifyUrl = dateRange?.from && dateRange?.to && userDetails.user.id
+      ? `https://app.clockify.me/reports/summary?start=${dateRange.from}T00:00:00.000Z&end=${dateRange.to}T23:59:59.999Z&filterValuesData=${encodeURIComponent(JSON.stringify({ users: [userDetails.user.id], userGroups: [], userAndGroup: [] }))}&filterOptions=${encodeURIComponent(JSON.stringify({ userAndGroup: { status: "ACTIVE_WITH_PENDING" } }))}`
+      : null
+
     return (
       <div className="space-y-6">
+        {clockifyUrl && (
+          <a
+            href={clockifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Zobrazit v Clockify
+          </a>
+        )}
+
         {/* Projects Distribution */}
         <div>
           <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
