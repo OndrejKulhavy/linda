@@ -21,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { FolderKanban, ListTodo, ExternalLink } from "lucide-react"
+import { FolderKanban, ListTodo, ExternalLink, AlertTriangle } from "lucide-react"
 
 export interface UserProjectHours {
   name: string
@@ -39,6 +39,7 @@ interface UserDetails {
 interface TreemapChartProps {
   data: UserProjectHours[]
   dateRange?: { from: string; to: string }
+  highlight40Hours?: boolean
 }
 
 const COLORS = [
@@ -56,10 +57,11 @@ interface TreemapNodeProps {
   hours: number
   color: string
   onUserClick?: (userName: string) => void
+  highlight40Hours?: boolean
 }
 
 function CustomTreemapContent(props: TreemapNodeProps) {
-  const { x, y, width, height, name, hours, color, onUserClick } = props
+  const { x, y, width, height, name, hours, color, onUserClick, highlight40Hours = false } = props
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -71,6 +73,8 @@ function CustomTreemapContent(props: TreemapNodeProps) {
   // More aggressive text display - show on smaller blocks
   const showText = width > 45 && height > 30
   const showOnlyHours = !showText && width > 30 && height > 25
+  const isBelow40 = hours < 40 && highlight40Hours
+  const showAlertIcon = isBelow40 && width > 60 && height > 40
 
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
@@ -79,12 +83,23 @@ function CustomTreemapContent(props: TreemapNodeProps) {
         y={y}
         width={width}
         height={height}
-        fill={color}
+        fill={isBelow40 ? "#6b7280" : color}
         stroke="#fff"
         strokeWidth={2}
         rx={4}
         className="transition-opacity hover:opacity-80"
       />
+      {showAlertIcon && (
+        <g transform={`translate(${x + width - 22}, ${y + 6})`}>
+          <circle cx="10" cy="10" r="9" fill="#ef4444" opacity="0.9" />
+          <path
+            d="M10 6 L10 11 M10 13 L10 14"
+            stroke="#fff"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </g>
+      )}
       {showText && (
         <>
           <text
@@ -126,7 +141,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
   )
 }
 
-export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
+export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: TreemapChartProps) {
   const isMobile = useIsMobile()
   const projects = useMemo(() => {
     const projectSet = new Set(data.map((d) => d.project))
@@ -398,6 +413,7 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
                   hours={0} 
                   color="" 
                   onUserClick={handleUserClick}
+                  highlight40Hours={highlight40Hours}
                 />
               }
             >
@@ -405,10 +421,17 @@ export function UserHoursTreemap({ data, dateRange }: TreemapChartProps) {
                 content={({ payload }) => {
                   if (payload && payload.length > 0) {
                     const item = payload[0].payload
+                    const isBelow40 = item.hours < 40 && highlight40Hours
                     return (
                       <div className="bg-popover border rounded-lg p-3 shadow-lg">
-                        <p className="font-semibold">{item.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">{item.name}</p>
+                          {isBelow40 && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                        </div>
                         <p className="text-muted-foreground">{item.hours} hodin</p>
+                        {isBelow40 && (
+                          <p className="text-xs text-red-500 mt-1">Nedosaženo 40 hodin</p>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">Klikni pro detail</p>
                       </div>
                     )

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { UserHoursTreemap, type UserProjectHours } from "@/components/UserHoursTreemap"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 
 function getLastWeekRange() {
@@ -26,6 +28,7 @@ export default function UserHoursPage() {
   const [data, setData] = useState<UserProjectHours[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [highlight40Hours, setHighlight40Hours] = useState(false)
 
   const handleFetch = useCallback(async (fromDate: string, toDate: string) => {
     if (!fromDate || !toDate) {
@@ -95,6 +98,16 @@ export default function UserHoursPage() {
           <Button onClick={() => handleFetch(from, to)} disabled={loading} size="sm" className="w-full sm:w-auto h-10 sm:h-9">
             {loading ? "Načítám..." : "Načíst"}
           </Button>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <Switch
+              id="highlight-40"
+              checked={highlight40Hours}
+              onCheckedChange={setHighlight40Hours}
+            />
+            <Label htmlFor="highlight-40" className="text-sm cursor-pointer">
+              Zvýraznit &lt;40 hodin
+            </Label>
+          </div>
           {error && <span className="text-sm text-red-500">{error}</span>}
         </div>
 
@@ -104,7 +117,7 @@ export default function UserHoursPage() {
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
             {data.length > 0 ? (
-              <UserHoursTreemap data={data} dateRange={{ from, to }} />
+              <UserHoursTreemap data={data} dateRange={{ from, to }} highlight40Hours={highlight40Hours} />
             ) : (
               <div className="flex items-center justify-center h-[300px] sm:h-[500px] text-muted-foreground text-center px-4">
                 Vyber časové období a klikni na &quot;Načíst data&quot;
