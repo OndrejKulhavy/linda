@@ -180,22 +180,23 @@ export default function AttendanceSummary({
                       </div>
 
                       {(record.absence_reason || record.excuse_teams_url) && (
-                        <div className="mt-3 pt-3 border-t border-current/10 space-y-2">
-                          {record.absence_reason && (
-                            <p className="text-sm text-foreground/80">
-                              {record.absence_reason}
-                            </p>
-                          )}
-                          {record.excuse_teams_url && (
+                        <div className="mt-3 pt-3 border-t border-current/10">
+                          {record.excuse_teams_url ? (
                             <a
                               href={record.excuse_teams_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                              className="group flex items-center justify-between text-sm text-foreground/80 hover:text-foreground transition-colors"
                             >
-                              <ExternalLink className="w-4 h-4" />
-                              Zobrazit omluvu v Teams
+                              <span className="group-hover:underline">
+                                {record.absence_reason || 'Zobrazit omluvu'}
+                              </span>
+                              <ExternalLink className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
                             </a>
+                          ) : (
+                            <p className="text-sm text-foreground/80">
+                              {record.absence_reason}
+                            </p>
                           )}
                         </div>
                       )}
