@@ -144,14 +144,12 @@ export default function CalendarPage() {
                 Sync: {formatLastSync(lastSyncAt)}
               </span>
             )}
-            {isLoggedIn && (
-              <Link href="/attendance">
-                <Button variant="outline" size="sm" className="px-2 sm:px-3">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">Statistiky</span>
-                </Button>
-              </Link>
-            )}
+            <Link href="/attendance">
+              <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Statistiky</span>
+              </Button>
+            </Link>
             {isLoggedIn && (
               <Button
                 variant="outline"
