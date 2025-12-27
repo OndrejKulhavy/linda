@@ -183,16 +183,16 @@ export function getRandomLindaMessage(data: LindaMessageData): string {
 
 export function getEmailSubject(): string {
   const subjects = [
-    "📝 Clockify ti posílá pozdrav!",
-    "⏰ Linda z Tuuli - nezapomněl/a jsi na něco?",
-    "👋 Malá připomínka od Lindy z Tuuli",
-    "🕐 Clockify čeká na tvoje hodiny!",
-    "💙 Linda z Tuuli se ptá: Co ten Clockify?",
-    "🌊 Tuuli reminder: Hodiny v Clockify!",
-    "🎯 Linda z Tuuli: Quick check-in!",
-    "⚡ Clockify update needed!",
-    "🤖 Linda z Tuuli má pro tebe zprávu",
-    "📊 Tvůj týdenní Clockify status",
+    "Clockify ti posílá pozdrav!",
+    "Linda z Tuuli - nezapomněl/a jsi na něco?",
+    "Malá připomínka od Lindy z Tuuli",
+    "Clockify čeká na tvoje hodiny!",
+    "Linda z Tuuli se ptá: Co ten Clockify?",
+    "Tuuli reminder: Hodiny v Clockify",
+    "Linda z Tuuli: Quick check-in",
+    "Clockify update needed",
+    "Linda z Tuuli má pro tebe zprávu",
+    "Tvůj týdenní Clockify status",
   ]
   return subjects[Math.floor(Math.random() * subjects.length)]
 }
