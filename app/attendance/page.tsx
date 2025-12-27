@@ -17,21 +17,21 @@ import {
   ArrowLeft,
   Loader2,
   Clock,
-  Coffee,
   XCircle,
   Calendar,
   Users,
-  AlertTriangle,
+  TrendingUp,
   Check,
 } from 'lucide-react'
 import type { SessionWithAttendance, AttendanceRecord } from '@/types/session'
 import { TEAM_MEMBERS, getFullName } from '@/lib/team-members'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { cn } from '@/lib/utils'
 
 interface MemberStats {
   name: string
+  firstName: string
   present: number
   lateStart: number
   lateAfterBreak: number
@@ -39,7 +39,7 @@ interface MemberStats {
   absentUnplanned: number
   totalSessions: number
   attendanceRate: number
-  issueCount: number
+  totalLate: number
 }
 
 interface MonthOption {
@@ -102,7 +102,7 @@ export default function AttendancePage() {
     return sessions.filter(session => {
       const sessionDate = new Date(session.date)
       return sessionDate.getFullYear() === year && sessionDate.getMonth() === month - 1
-    })
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [sessions, selectedMonth])
 
   // Calculate member statistics
@@ -114,6 +114,7 @@ export default function AttendancePage() {
       const fullName = getFullName(member)
       statsMap.set(fullName, {
         name: fullName,
+        firstName: member.firstName,
         present: 0,
         lateStart: 0,
         lateAfterBreak: 0,
@@ -121,19 +122,19 @@ export default function AttendancePage() {
         absentUnplanned: 0,
         totalSessions: filteredSessions.length,
         attendanceRate: 0,
-        issueCount: 0,
+        totalLate: 0,
       })
     })
     
-    // Count records
+    // Count records - only absences and late arrivals create records
+    // No record = person was present and on time
     filteredSessions.forEach(session => {
       session.attendance_records?.forEach((record: AttendanceRecord) => {
         const stats = statsMap.get(record.employee_name)
         if (stats) {
           switch (record.status) {
             case 'present':
-              stats.present++
-              // Track late arrivals from the new fields
+              // Record exists with 'present' = was late (tracked separately)
               if (record.late_start) stats.lateStart++
               stats.lateAfterBreak += record.late_break_count ?? 0
               break
@@ -148,37 +149,38 @@ export default function AttendancePage() {
       })
     })
     
-    // Calculate rates
+    // Calculate rates - present = total sessions minus absences
     const result = Array.from(statsMap.values())
     result.forEach(stats => {
-      const attended = stats.present // Present already includes people who were late
+      stats.totalLate = stats.lateStart + stats.lateAfterBreak
+      const totalAbsent = stats.absentPlanned + stats.absentUnplanned
+      stats.present = stats.totalSessions - totalAbsent
       stats.attendanceRate = stats.totalSessions > 0 
-        ? Math.round((attended / stats.totalSessions) * 100) 
+        ? Math.round((stats.present / stats.totalSessions) * 100) 
         : 0
-      stats.issueCount = stats.lateStart + stats.lateAfterBreak + stats.absentUnplanned
     })
     
-    return result.sort((a, b) => b.issueCount - a.issueCount)
+    return result.sort((a, b) => a.name.localeCompare(b.name, 'cs'))
   }, [filteredSessions])
 
   // Overview stats
   const overviewStats = useMemo(() => {
     const totalSessions = filteredSessions.length
     const sessionsWithRecords = filteredSessions.filter(s => s.attendance_records?.length > 0).length
+    const teamSize = TEAM_MEMBERS.length
     
-    let totalPresent = 0
-    let totalLate = 0
+    let totalLateInstances = 0
     let totalAbsentPlanned = 0
     let totalAbsentUnplanned = 0
     
+    // Count only absences and late instances from records
     filteredSessions.forEach(session => {
       session.attendance_records?.forEach((record: AttendanceRecord) => {
         switch (record.status) {
           case 'present': 
-            totalPresent++
-            // Count late instances from new fields
-            if (record.late_start) totalLate++
-            totalLate += record.late_break_count ?? 0
+            // Person was present but late
+            if (record.late_start) totalLateInstances++
+            totalLateInstances += record.late_break_count ?? 0
             break
           case 'absent_planned': totalAbsentPlanned++; break
           case 'absent_unplanned': totalAbsentUnplanned++; break
@@ -186,50 +188,71 @@ export default function AttendancePage() {
       })
     })
     
-    const totalRecords = totalPresent + totalLate + totalAbsentPlanned + totalAbsentUnplanned
+    // Present = expected attendance minus absences
+    const expectedRecords = totalSessions * teamSize
+    const totalAbsent = totalAbsentPlanned + totalAbsentUnplanned
+    const totalPresent = expectedRecords - totalAbsent
+    const attendanceRate = expectedRecords > 0 
+      ? Math.round((totalPresent / expectedRecords) * 100) 
+      : 0
     
     return {
       totalSessions,
       sessionsWithRecords,
+      teamSize,
       totalPresent,
-      totalLate,
+      totalLateInstances,
       totalAbsentPlanned,
       totalAbsentUnplanned,
-      totalRecords,
-      presentRate: totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0,
+      attendanceRate,
     }
   }, [filteredSessions])
 
-  // Chart data for late arrivals by member
-  const lateChartData = useMemo(() => {
+  // Late arrivals trend per session
+  const trendData = useMemo(() => {
+    return filteredSessions.map(session => {
+      const records = session.attendance_records || []
+      const date = new Date(session.date)
+      
+      // Count late instances from records
+      let lateStart = 0
+      let lateAfterBreak = 0
+      records.forEach(r => {
+        if (r.status === 'present') {
+          if (r.late_start) lateStart++
+          lateAfterBreak += r.late_break_count ?? 0
+        }
+      })
+      
+      return {
+        date: date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' }),
+        fullDate: session.date,
+        lateStart,
+        lateAfterBreak,
+        totalLate: lateStart + lateAfterBreak,
+      }
+    })
+  }, [filteredSessions])
+
+  // Top late arrivals (people with most lates)
+  const topLateArrivals = useMemo(() => {
     return memberStats
-      .filter(m => m.lateStart + m.lateAfterBreak > 0)
-      .map(m => ({
-        name: m.name.split(' ')[0], // First name only
-        fullName: m.name,
-        lateStart: m.lateStart,
-        lateAfterBreak: m.lateAfterBreak,
-        total: m.lateStart + m.lateAfterBreak,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10)
+      .filter(m => m.totalLate > 0)
+      .sort((a, b) => b.totalLate - a.totalLate)
+      .slice(0, 5)
   }, [memberStats])
 
-  // Pie chart data
-  const pieChartData = useMemo(() => [
-    { name: 'Přítomni', value: overviewStats.totalPresent, color: '#22c55e' },
-    { name: 'Pozdě', value: overviewStats.totalLate, color: '#f59e0b' },
-    { name: 'Plán. absence', value: overviewStats.totalAbsentPlanned, color: '#3b82f6' },
-    { name: 'Nepl. absence', value: overviewStats.totalAbsentUnplanned, color: '#ef4444' },
-  ].filter(d => d.value > 0), [overviewStats])
-
   const chartConfig = {
+    totalLate: {
+      label: 'Pozdě celkem',
+      color: 'hsl(35 92% 50%)',
+    },
     lateStart: {
-      label: 'Pozdě na začátek',
+      label: 'Pozdě začátek',
       color: 'hsl(35 92% 50%)',
     },
     lateAfterBreak: {
-      label: 'Pozdě po přestávce',
+      label: 'Pozdě přestávka',
       color: 'hsl(25 95% 53%)',
     },
   }
@@ -244,7 +267,7 @@ export default function AttendancePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 sm:p-6">
+      <div className="container mx-auto p-4 sm:p-6 max-w-6xl">
         {/* Header */}
         <div className="flex flex-wrap justify-between items-center gap-2 sm:gap-4 mb-6">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -254,12 +277,12 @@ export default function AttendancePage() {
                 <span className="hidden sm:inline">Kalendář</span>
               </Button>
             </Link>
-            <h1 className="text-lg sm:text-2xl font-bold">Statistiky docházky</h1>
+            <h1 className="text-lg sm:text-2xl font-bold">Statistiky</h1>
           </div>
           <div className="flex items-center gap-2">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Vyberte měsíc" />
+              <SelectTrigger className="w-[160px] sm:w-[180px]">
+                <SelectValue placeholder="Měsíc" />
               </SelectTrigger>
               <SelectContent>
                 {monthOptions.map(opt => (
@@ -278,140 +301,187 @@ export default function AttendancePage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Calendar className="w-12 h-12 text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground text-center">
-                Žádné sessions v tomto měsíci.
+                Žádné schůzky v tomto měsíci.
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-6">
             {/* Overview Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Sessions</span>
+                <CardContent className="pt-4 sm:pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    <span className="text-xs sm:text-sm truncate">Schůzky</span>
                   </div>
-                  <div className="text-2xl font-bold mt-2">
-                    {overviewStats.sessionsWithRecords}/{overviewStats.totalSessions}
+                  <div className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">
+                    {overviewStats.totalSessions}
                   </div>
-                  <p className="text-xs text-muted-foreground">se záznamy</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {overviewStats.sessionsWithRecords} se záznamy
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-muted-foreground">Účast</span>
+                <CardContent className="pt-4 sm:pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Users className="h-4 w-4 shrink-0" />
+                    <span className="text-xs sm:text-sm truncate">Účast</span>
                   </div>
-                  <div className="text-2xl font-bold mt-2 text-green-600 dark:text-green-400">
-                    {overviewStats.presentRate}%
+                  <div className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 text-green-600 dark:text-green-400">
+                    {overviewStats.attendanceRate}%
                   </div>
-                  <p className="text-xs text-muted-foreground">{overviewStats.totalPresent} přítomných</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {overviewStats.totalPresent} přítomností
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-amber-500" />
-                    <span className="text-sm text-muted-foreground">Pozdě</span>
+                <CardContent className="pt-4 sm:pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    <span className="text-xs sm:text-sm truncate">Pozdě</span>
                   </div>
-                  <div className="text-2xl font-bold mt-2 text-amber-600 dark:text-amber-400">
-                    {overviewStats.totalLate}
+                  <div className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 text-amber-600 dark:text-amber-400">
+                    {overviewStats.totalLateInstances}
                   </div>
-                  <p className="text-xs text-muted-foreground">pozdních příchodů</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    pozdních příchodů
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-red-500" />
-                    <span className="text-sm text-muted-foreground">Absence</span>
+                <CardContent className="pt-4 sm:pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <XCircle className="h-4 w-4 shrink-0" />
+                    <span className="text-xs sm:text-sm truncate">Absence</span>
                   </div>
-                  <div className="text-2xl font-bold mt-2 text-red-600 dark:text-red-400">
+                  <div className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2 text-red-600 dark:text-red-400">
                     {overviewStats.totalAbsentUnplanned}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    neplánovaných ({overviewStats.totalAbsentPlanned} plán.)
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    neomluv. ({overviewStats.totalAbsentPlanned} omluv.)
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Charts Row */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Late Arrivals Chart */}
+            {/* Charts */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Late Arrivals Trend */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Pozdní příchody
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Pozdní příchody v čase
                   </CardTitle>
-                  <CardDescription>
-                    Podle člena týmu za vybraný měsíc
+                  <CardDescription className="text-xs sm:text-sm">
+                    Počet pozdních příchodů na jednotlivých schůzkách
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {lateChartData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[200px] text-center">
-                      <Check className="w-10 h-10 text-green-500 mb-2" />
-                      <p className="text-muted-foreground">Žádné pozdní příchody! 🎉</p>
+                  {trendData.every(d => d.totalLate === 0) ? (
+                    <div className="flex flex-col items-center justify-center h-[200px] sm:h-[250px] text-center">
+                      <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-3">
+                        <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-muted-foreground text-sm">Žádné pozdní příchody 🎉</p>
                     </div>
                   ) : (
-                    <ChartContainer config={chartConfig} className="h-[250px]">
-                      <BarChart data={lateChartData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={80} />
+                    <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
+                      <BarChart data={trendData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 10 }} 
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10 }} 
+                          tickLine={false}
+                          axisLine={false}
+                          width={20}
+                          allowDecimals={false}
+                        />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="lateStart" stackId="a" fill="var(--color-lateStart)" name="Na začátek" />
-                        <Bar dataKey="lateAfterBreak" stackId="a" fill="var(--color-lateAfterBreak)" name="Po přestávce" />
+                        <Bar 
+                          dataKey="lateStart" 
+                          stackId="a"
+                          fill="var(--color-lateStart)" 
+                          name="Začátek"
+                          radius={[0, 0, 0, 0]}
+                        />
+                        <Bar 
+                          dataKey="lateAfterBreak" 
+                          stackId="a"
+                          fill="var(--color-lateAfterBreak)" 
+                          name="Přestávka"
+                          radius={[4, 4, 0, 0]}
+                        />
                       </BarChart>
                     </ChartContainer>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Distribution Pie */}
+              {/* Top Late Arrivals */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Rozdělení docházky
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Pozdní příchody
                   </CardTitle>
-                  <CardDescription>
-                    Celkové zastoupení statusů
+                  <CardDescription className="text-xs sm:text-sm">
+                    Top 5 členů s nejvíce pozdními příchody
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {overviewStats.totalRecords === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[200px] text-center">
-                      <AlertTriangle className="w-10 h-10 text-muted-foreground/50 mb-2" />
-                      <p className="text-muted-foreground">Žádné záznamy</p>
+                  {topLateArrivals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-[200px] sm:h-[250px] text-center">
+                      <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-3">
+                        <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-muted-foreground text-sm">Žádné pozdní příchody 🎉</p>
                     </div>
                   ) : (
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={pieChartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={80}
-                            dataKey="value"
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          >
-                            {pieChartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
+                      <BarChart 
+                        data={topLateArrivals} 
+                        layout="vertical" 
+                        margin={{ left: 0, right: 8, top: 8, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                        <YAxis 
+                          dataKey="firstName" 
+                          type="category" 
+                          width={70} 
+                          tick={{ fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar 
+                          dataKey="lateStart" 
+                          stackId="a" 
+                          fill="var(--color-lateStart)" 
+                          name="Začátek"
+                          radius={[0, 0, 0, 0]}
+                        />
+                        <Bar 
+                          dataKey="lateAfterBreak" 
+                          stackId="a" 
+                          fill="var(--color-lateAfterBreak)" 
+                          name="Přestávka"
+                          radius={[0, 4, 4, 0]}
+                        />
+                      </BarChart>
+                    </ChartContainer>
                   )}
                 </CardContent>
               </Card>
@@ -419,82 +489,98 @@ export default function AttendancePage() {
 
             {/* Member Table */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  Přehled členů týmu
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                  Přehled členů
                 </CardTitle>
-                <CardDescription>
-                  Seřazeno podle počtu problémů (pozdě + neplánované absence)
+                <CardDescription className="text-xs sm:text-sm">
+                  Statistiky za {monthOptions.find(m => m.value === selectedMonth)?.label}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+              <CardContent className="px-2 sm:px-6">
+                <div className="overflow-x-auto -mx-2 sm:mx-0">
+                  <table className="w-full text-xs sm:text-sm min-w-[400px]">
                     <thead>
-                      <tr className="border-b">
+                      <tr className="border-b text-muted-foreground">
                         <th className="text-left py-2 px-2 font-medium">Jméno</th>
-                        <th className="text-center py-2 px-2 font-medium">
-                          <span className="hidden sm:inline">Přítomen</span>
-                          <Check className="sm:hidden w-4 h-4 mx-auto text-green-500" />
+                        <th className="text-center py-2 px-1 sm:px-2 font-medium w-16 sm:w-auto">
+                          <span className="hidden sm:inline">Účast</span>
+                          <Check className="sm:hidden w-3.5 h-3.5 mx-auto" />
                         </th>
-                        <th className="text-center py-2 px-2 font-medium">
-                          <span className="hidden sm:inline">Pozdě Z</span>
-                          <Clock className="sm:hidden w-4 h-4 mx-auto text-amber-500" />
+                        <th className="text-center py-2 px-1 sm:px-2 font-medium w-14 sm:w-auto">
+                          <span className="hidden sm:inline">Pozdě</span>
+                          <Clock className="sm:hidden w-3.5 h-3.5 mx-auto" />
                         </th>
-                        <th className="text-center py-2 px-2 font-medium">
-                          <span className="hidden sm:inline">Pozdě P</span>
-                          <Coffee className="sm:hidden w-4 h-4 mx-auto text-orange-500" />
+                        <th className="text-center py-2 px-1 sm:px-2 font-medium w-14 sm:w-auto">
+                          <span className="hidden sm:inline">Omluv.</span>
+                          <Calendar className="sm:hidden w-3.5 h-3.5 mx-auto" />
                         </th>
-                        <th className="text-center py-2 px-2 font-medium hidden sm:table-cell">Plán. abs.</th>
-                        <th className="text-center py-2 px-2 font-medium">
-                          <span className="hidden sm:inline">Nepl. abs.</span>
-                          <XCircle className="sm:hidden w-4 h-4 mx-auto text-red-500" />
+                        <th className="text-center py-2 px-1 sm:px-2 font-medium w-14 sm:w-auto">
+                          <span className="hidden sm:inline">Neomluv.</span>
+                          <XCircle className="sm:hidden w-3.5 h-3.5 mx-auto" />
                         </th>
-                        <th className="text-center py-2 px-2 font-medium">Problémy</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {memberStats.map((member) => (
-                        <tr
-                          key={member.name}
-                          className={cn(
-                            'border-b last:border-0',
-                            member.issueCount > 0 && 'bg-amber-50/50 dark:bg-amber-950/20'
-                          )}
-                        >
-                          <td className="py-2 px-2 font-medium">
-                            {member.name.split(' ')[0]}
-                            <span className="hidden sm:inline"> {member.name.split(' ').slice(1).join(' ')}</span>
-                          </td>
-                          <td className="text-center py-2 px-2 text-green-600 dark:text-green-400">
-                            {member.present}
-                          </td>
-                          <td className="text-center py-2 px-2 text-amber-600 dark:text-amber-400">
-                            {member.lateStart || '-'}
-                          </td>
-                          <td className="text-center py-2 px-2 text-orange-600 dark:text-orange-400">
-                            {member.lateAfterBreak || '-'}
-                          </td>
-                          <td className="text-center py-2 px-2 text-blue-600 dark:text-blue-400 hidden sm:table-cell">
-                            {member.absentPlanned || '-'}
-                          </td>
-                          <td className="text-center py-2 px-2 text-red-600 dark:text-red-400">
-                            {member.absentUnplanned || '-'}
-                          </td>
-                          <td className="text-center py-2 px-2">
-                            {member.issueCount > 0 ? (
-                              <Badge variant="destructive" className="text-xs">
-                                {member.issueCount}
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
-                                0
-                              </Badge>
+                      {memberStats.map((member) => {
+                        const hasIssues = member.totalLate > 0 || member.absentUnplanned > 0
+                        return (
+                          <tr
+                            key={member.name}
+                            className={cn(
+                              'border-b last:border-0 transition-colors',
+                              hasIssues && 'bg-amber-50/50 dark:bg-amber-950/10'
                             )}
-                          </td>
-                        </tr>
-                      ))}
+                          >
+                            <td className="py-2.5 px-2">
+                              <div className="font-medium">{member.firstName}</div>
+                              <div className="text-[10px] text-muted-foreground hidden sm:block">
+                                {member.name.split(' ').slice(1).join(' ')}
+                              </div>
+                            </td>
+                            <td className="text-center py-2.5 px-1 sm:px-2">
+                              <span className={cn(
+                                'font-medium',
+                                member.attendanceRate >= 90 
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : member.attendanceRate >= 70
+                                    ? 'text-amber-600 dark:text-amber-400'
+                                    : 'text-red-600 dark:text-red-400'
+                              )}>
+                                {member.present}/{member.totalSessions}
+                              </span>
+                            </td>
+                            <td className="text-center py-2.5 px-1 sm:px-2">
+                              {member.totalLate > 0 ? (
+                                <Badge variant="outline" className="text-[10px] sm:text-xs bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">
+                                  {member.totalLate}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="text-center py-2.5 px-1 sm:px-2">
+                              {member.absentPlanned > 0 ? (
+                                <Badge variant="outline" className="text-[10px] sm:text-xs bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400">
+                                  {member.absentPlanned}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="text-center py-2.5 px-1 sm:px-2">
+                              {member.absentUnplanned > 0 ? (
+                                <Badge variant="outline" className="text-[10px] sm:text-xs bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
+                                  {member.absentUnplanned}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
