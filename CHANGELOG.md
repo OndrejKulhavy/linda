@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2024-12-27]
+
+### Added
+- Comprehensive session and attendance tracking system ([c5580bf](https://github.com/OndrejKulhavy/linda/commit/c5580bf))
+  - SessionAttendancePanel for managing attendance with status, late type, and notes
+  - SessionCalendar for displaying and navigating sessions in calendar format
+  - Attendance page with comprehensive statistics and reporting
+  - AttendanceSummary component to display session details, stats, and issues
+  - QuickAttendancePanel for quick attendance management
+  - API routes for sessions and attendance records with full CRUD operations
+  - Database migrations for sessions, attendance records, and new tracking fields
+  - Utility functions for formatting and determining attendance/session types
+- Google Calendar API integration ([c5580bf](https://github.com/OndrejKulhavy/linda/commit/c5580bf))
+  - Functions for fetching events and parsing event types
+  - Setup documentation with environment variables and configuration steps
+- Attendance line chart and enhanced bar chart visualizations ([db8b82b](https://github.com/OndrejKulhavy/linda/commit/db8b82b))
+- Support for excused/unexcused absences with absence reasons ([ef40493](https://github.com/OndrejKulhavy/linda/commit/ef40493))
+- Excuse Teams URL field for attendance records ([c967f58](https://github.com/OndrejKulhavy/linda/commit/c967f58))
+- Late tracking fields in attendance records ([3f771fa](https://github.com/OndrejKulhavy/linda/commit/3f771fa))
+- Legacy attendance data migration to new structure with aggregation ([440f7c9](https://github.com/OndrejKulhavy/linda/commit/440f7c9))
+- Dialog for session details in calendar view ([c1f08ee](https://github.com/OndrejKulhavy/linda/commit/c1f08ee))
+
+### Enhanced
+- Mobile support for calendar and attendance components ([ca2bfef](https://github.com/OndrejKulhavy/linda/commit/ca2bfef))
+- Attendance summary display with absence reasons and excuse links ([f800b5f](https://github.com/OndrejKulhavy/linda/commit/f800b5f))
+- Attendance statistics and reporting with improved sorting and data handling ([b50b610](https://github.com/OndrejKulhavy/linda/commit/b50b610))
+- Attendance chart with separate data for team meetings and training sessions ([76f29b8](https://github.com/OndrejKulhavy/linda/commit/76f29b8))
+- Chart tooltip displays and visual clarity ([76f29b8](https://github.com/OndrejKulhavy/linda/commit/76f29b8))
+- SessionCalendar to show attendance stats and issues visually ([3f771fa](https://github.com/OndrejKulhavy/linda/commit/3f771fa))
+- QuickAttendancePanel layout and user experience ([c1f08ee](https://github.com/OndrejKulhavy/linda/commit/c1f08ee))
+
+### Fixed
+- Attendance link visibility to always display for better accessibility ([177fec2](https://github.com/OndrejKulhavy/linda/commit/177fec2))
+
+### Changed
+- Attendance handling to differentiate between excused and unexcused absences ([ef40493](https://github.com/OndrejKulhavy/linda/commit/ef40493))
+- Chart display to use stacked bars for present and absent data ([ab00074](https://github.com/OndrejKulhavy/linda/commit/ab00074))
+- Issue record filtering logic for improved accuracy ([ef40493](https://github.com/OndrejKulhavy/linda/commit/ef40493))
+- Comments for protected routes handling in middleware ([662568d](https://github.com/OndrejKulhavy/linda/commit/662568d))
+
 ## [2024-12-06]
 
 ### Added

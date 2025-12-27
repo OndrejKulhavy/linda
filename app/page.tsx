@@ -11,25 +11,23 @@ import { ChangelogDialog } from "@/components/ChangelogDialog"
 
 export default function Home() {
   const [changelogOpen, setChangelogOpen] = useState(false)
-  const [hasNewChanges, setHasNewChanges] = useState(false)
-
-  useEffect(() => {
-    // Check if there are new changes since last view
+  const latestChangeDate = '2024-12-27' // Update this when adding new changes
+  
+  // Compute hasNewChanges directly without useEffect to avoid cascading renders
+  const [hasNewChanges, setHasNewChanges] = useState(() => {
+    if (typeof window === 'undefined') return false
     const lastViewed = localStorage.getItem('lastViewedChangelog')
-    const latestChangeDate = '2024-12-06' // Update this when adding new changes
     
     if (!lastViewed) {
       // First time visitor - show badge
-      setHasNewChanges(true)
+      return true
     } else {
       const lastViewedDate = new Date(lastViewed)
       const latestDate = new Date(latestChangeDate)
       
-      if (latestDate > lastViewedDate) {
-        setHasNewChanges(true)
-      }
+      return latestDate > lastViewedDate
     }
-  }, [])
+  })
 
   const handleOpenChangelog = () => {
     setChangelogOpen(true)
