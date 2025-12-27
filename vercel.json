@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/linda-reminder",
+      "schedule": "0 13 * * 5"
+    },
+    {
+      "path": "/api/cron/linda-reminder",
+      "schedule": "0 9 * * 6"
+    },
+    {
+      "path": "/api/cron/linda-reminder",
+      "schedule": "0 9 * * 0"
+    }
+  ]
+}
