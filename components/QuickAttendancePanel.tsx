@@ -207,7 +207,7 @@ export default function QuickAttendancePanel({
   )
 
   return (
-    <div className="h-full flex flex-col bg-background border rounded-lg overflow-hidden">
+    <div className="h-full max-h-[85vh] flex flex-col bg-background rounded-lg overflow-hidden">
       {/* Header */}
       <div className="flex items-start justify-between p-3 sm:p-4 border-b shrink-0 bg-card">
         <div className="min-w-0 flex-1">
@@ -246,16 +246,9 @@ export default function QuickAttendancePanel({
         Všichni jsou přítomni včas. Označte kdo přišel pozdě nebo chyběl.
       </div>
 
-      {/* Quick Actions */}
-      <div className="flex gap-2 p-2 sm:p-3 border-b">
-        <Button variant="outline" size="sm" onClick={clearAll} className="text-xs">
-          Všichni včas
-        </Button>
-      </div>
-
       {/* Member List */}
-      <div className="flex-1 overflow-y-auto p-2 sm:p-3">
-        <div className="space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3">
+        <div className="space-y-2 pb-4">
           {TEAM_MEMBERS.map(member => {
             const fullName = getFullName(member)
             const entry = getEntry(fullName)

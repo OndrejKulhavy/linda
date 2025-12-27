@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ArrowLeft, RefreshCw, Loader2, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -173,21 +178,22 @@ export default function CalendarPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Calendar */}
-            <div className={selectedSession ? 'lg:flex-1' : 'w-full'}>
-              <SessionCalendar
-                sessions={sessions}
-                onSessionClick={handleSessionClick}
-                selectedSessionId={selectedSession?.id}
-              />
-            </div>
+          <>
+            {/* Calendar - full width now */}
+            <SessionCalendar
+              sessions={sessions}
+              onSessionClick={handleSessionClick}
+              selectedSessionId={selectedSession?.id}
+            />
 
-            {/* Desktop: Side panel */}
-            {selectedSession && (
-              <div className="hidden lg:block w-96 shrink-0">
-                <div className="sticky top-6">
-                  {isLoggedIn ? (
+            {/* Desktop: Dialog */}
+            <Dialog open={!!selectedSession && !isMobile} onOpenChange={(open) => !open && handlePanelClose()}>
+              <DialogContent showCloseButton={false} className="max-w-lg p-0 max-h-[85vh] flex flex-col overflow-hidden">
+                <DialogTitle className="sr-only">
+                  {selectedSession?.title || 'Docházka'}
+                </DialogTitle>
+                {selectedSession && (
+                  isLoggedIn ? (
                     <QuickAttendancePanel
                       session={selectedSession}
                       onClose={handlePanelClose}
@@ -198,14 +204,14 @@ export default function CalendarPage() {
                       session={selectedSession}
                       onClose={handlePanelClose}
                     />
-                  )}
-                </div>
-              </div>
-            )}
+                  )
+                )}
+              </DialogContent>
+            </Dialog>
 
             {/* Mobile: Bottom sheet */}
             <Sheet open={!!selectedSession && isMobile} onOpenChange={(open) => !open && handlePanelClose()}>
-              <SheetContent side="bottom" className="h-[85vh] p-0">
+              <SheetContent side="bottom" className="h-[85vh] p-0 flex flex-col">
                 <SheetTitle className="sr-only">
                   {selectedSession?.title || 'Docházka'}
                 </SheetTitle>
@@ -225,7 +231,7 @@ export default function CalendarPage() {
                 )}
               </SheetContent>
             </Sheet>
-          </div>
+          </>
         )}
 
         {/* Info for non-logged in users */}
