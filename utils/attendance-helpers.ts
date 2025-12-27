@@ -88,7 +88,13 @@ export function calculateSessionStats(session: SessionWithAttendance): SessionAt
  * Get records with issues (late or absent)
  */
 export function getIssueRecords(records: AttendanceRecord[]): AttendanceRecord[] {
-  return records.filter(r => r.status !== 'present')
+  return records.filter(r => {
+    // Absent
+    if (r.status !== 'present') return true
+    // Late (present but arrived late)
+    if (r.late_start || r.late_break_count > 0) return true
+    return false
+  })
 }
 
 /**

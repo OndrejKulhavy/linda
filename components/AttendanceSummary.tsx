@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,8 +10,10 @@ import {
   Coffee,
   XCircle,
   Calendar,
-  AlertTriangle,
   User,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import type { SessionWithAttendance, AttendanceRecord } from '@/types/session'
 import {
@@ -39,8 +41,8 @@ function getStatusIcon(record: AttendanceRecord) {
 }
 
 function getStatusLabel(record: AttendanceRecord): string {
-  if (record.status === 'absent_planned') return 'Plánovaná absence'
-  if (record.status === 'absent_unplanned') return 'Neplánovaná absence'
+  if (record.status === 'absent_planned') return 'Omluvená absence'
+  if (record.status === 'absent_unplanned') return 'Neomluvená absence'
   // Present - check if late
   const parts: string[] = []
   if (record.late_start) parts.push('pozdě na začátek')
@@ -49,26 +51,17 @@ function getStatusLabel(record: AttendanceRecord): string {
   return `Přítomen/a (${parts.join(', ')})`
 }
 
-function getStatusColor(record: AttendanceRecord): string {
-  if (record.status === 'absent_planned') {
-    return 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950'
-  }
-  if (record.status === 'absent_unplanned') {
-    return 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950'
-  }
-  // Present - check if late
-  if (record.late_start || record.late_break_count > 0) {
-    return 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950'
-  }
-  return 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950'
-}
-
 export default function AttendanceSummary({
   session,
   onClose,
 }: AttendanceSummaryProps) {
   const stats = useMemo(() => calculateSessionStats(session), [session])
   const issues = useMemo(() => getIssueRecords(session.attendance_records || []), [session])
+  const [lateExpanded, setLateExpanded] = useState(false)
+
+  // Separate absences from late arrivals
+  const absences = useMemo(() => issues.filter(r => r.status !== 'present'), [issues])
+  const lateArrivals = useMemo(() => issues.filter(r => r.status === 'present'), [issues])
 
   const hasNoRecords = stats.total === 0
   const hasNoIssues = issues.length === 0 && !hasNoRecords
@@ -106,13 +99,13 @@ export default function AttendanceSummary({
           <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
             {stats.absentPlanned}
           </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground">Plán. abs.</div>
+          <div className="text-[10px] sm:text-xs text-muted-foreground">Omluveno</div>
         </div>
         <div className="text-center">
           <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
             {stats.absentUnplanned}
           </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground">Nepl. abs.</div>
+          <div className="text-[10px] sm:text-xs text-muted-foreground">Neomluv.</div>
         </div>
       </div>
 
@@ -122,7 +115,7 @@ export default function AttendanceSummary({
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <User className="w-12 h-12 text-muted-foreground/50 mb-3" />
             <p className="text-muted-foreground">
-              Docházka pro tuto session zatím nebyla zaznamenána.
+              Docházka pro tuto schůzku zatím nebyla zaznamenána.
             </p>
           </div>
         ) : hasNoIssues ? (
@@ -131,77 +124,157 @@ export default function AttendanceSummary({
               <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
             <h3 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-1">
-              Vše v pořádku! 🎉
+              Plná účast
             </h3>
             <p className="text-sm text-muted-foreground">
               Všichni členové byli přítomni včas.
             </p>
             <Badge variant="outline" className="mt-3">
-              {stats.present} přítomných z {stats.total}
+              {stats.present} z {stats.total} přítomno
             </Badge>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <span>
-                {issues.length} {issues.length === 1 ? 'problém' : issues.length < 5 ? 'problémy' : 'problémů'}
-              </span>
-            </div>
+            {/* Absences section */}
+            {absences.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Absence
+                </h3>
+                {absences.map(record => {
+                  const Icon = getStatusIcon(record)
+                  const statusLabel = getStatusLabel(record)
 
-            <div className="space-y-2">
-              {issues.map(record => {
-                const Icon = getStatusIcon(record)
-                const statusLabel = getStatusLabel(record)
-                const colorClass = getStatusColor(record)
-
-                return (
-                  <div
-                    key={record.id}
-                    className={cn(
-                      'rounded-lg border p-3 space-y-2',
-                      colorClass
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4" />
-                        <span className="font-medium">{record.employee_name}</span>
+                  return (
+                    <div
+                      key={record.id}
+                      className={cn(
+                        'rounded-xl border p-4',
+                        record.status === 'absent_planned'
+                          ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50'
+                          : 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            'w-10 h-10 rounded-full flex items-center justify-center shrink-0',
+                            record.status === 'absent_planned'
+                              ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                              : 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
+                          )}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="font-semibold">{record.employee_name}</div>
+                            <div className={cn(
+                              'text-sm',
+                              record.status === 'absent_planned'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-red-600 dark:text-red-400'
+                            )}>
+                              {statusLabel}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {statusLabel}
-                      </Badge>
+
+                      {(record.absence_reason || record.excuse_teams_url) && (
+                        <div className="mt-3 pt-3 border-t border-current/10 space-y-2">
+                          {record.absence_reason && (
+                            <p className="text-sm text-foreground/80">
+                              {record.absence_reason}
+                            </p>
+                          )}
+                          {record.excuse_teams_url && (
+                            <a
+                              href={record.excuse_teams_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Zobrazit omluvu v Teams
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
+                  )
+                })}
+              </div>
+            )}
 
-                    {record.absence_reason && (
-                      <div className="text-sm">
-                        <span className="font-medium">Důvod: </span>
-                        {record.absence_reason}
-                        {record.absence_excused && (
-                          <Badge variant="outline" className="ml-2 text-[10px]">
-                            Omluveno
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-
-                    {record.notes && (
-                      <div className="text-sm opacity-80">
-                        <span className="font-medium">Poznámka: </span>
-                        {record.notes}
-                      </div>
+            {/* Late arrivals section - collapsible */}
+            {lateArrivals.length > 0 && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setLateExpanded(!lateExpanded)}
+                  className="flex items-center justify-between w-full text-left group"
+                >
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Pozdní příchody ({lateArrivals.length})
+                  </h3>
+                  <div className="text-muted-foreground group-hover:text-foreground transition-colors">
+                    {lateExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
                     )}
                   </div>
-                )
-              })}
-            </div>
+                </button>
 
-            {/* Also show present count */}
+                {lateExpanded && (
+                  <div className="space-y-2">
+                    {lateArrivals.map(record => {
+                      const Icon = getStatusIcon(record)
+                      const statusLabel = getStatusLabel(record)
+
+                      return (
+                        <div
+                          key={record.id}
+                          className="rounded-lg border p-3 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm">{record.employee_name}</div>
+                              <div className="text-xs text-amber-600 dark:text-amber-400">
+                                {statusLabel}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {!lateExpanded && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {lateArrivals.map(record => (
+                      <Badge
+                        key={record.id}
+                        variant="outline"
+                        className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+                      >
+                        <Clock className="w-3 h-3 mr-1" />
+                        {record.employee_name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Present count at bottom */}
             {stats.present > 0 && (
-              <div className="pt-4 border-t">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  <span>{stats.present} členů bylo přítomno včas</span>
+              <div className="pt-3 mt-3 border-t">
+                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                  <Check className="w-4 h-4" />
+                  <span>{stats.present} členů přítomno včas</span>
                 </div>
               </div>
             )}

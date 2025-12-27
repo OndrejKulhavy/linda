@@ -93,21 +93,31 @@ export default function QuickAttendancePanel({
     })
   }
 
-  const toggleAbsent = (name: string, type: 'absent_planned' | 'absent_unplanned') => {
+  // type: 'excused' = they made an excuse, 'unexcused' = they just didn't come
+  const toggleAbsent = (name: string, type: 'excused' | 'unexcused') => {
     setAttendance(prev => {
       const newMap = new Map(prev)
       const existing = newMap.get(name) || { ...DEFAULT_ENTRY }
+      const newStatus = type === 'excused' ? 'absent_planned' : 'absent_unplanned'
       
-      if (existing.status === type) {
+      if (existing.status === newStatus) {
         // Toggle off - back to present
-        newMap.set(name, { ...existing, status: 'present' })
+        newMap.set(name, { 
+          ...existing, 
+          status: 'present',
+          absence_reason: undefined,
+          excuse_teams_url: undefined,
+        })
       } else {
         // Set to absent
         newMap.set(name, { 
           ...existing, 
-          status: type,
+          status: newStatus,
           late_start: false, // Can't be late if absent
           late_break_count: 0,
+          // Clear excuse fields if switching to unexcused
+          absence_reason: type === 'excused' ? existing.absence_reason : undefined,
+          excuse_teams_url: type === 'excused' ? existing.excuse_teams_url : undefined,
         })
       }
       return newMap
@@ -150,6 +160,7 @@ export default function QuickAttendancePanel({
       const entries = TEAM_MEMBERS.map(member => {
         const fullName = getFullName(member)
         const entry = getEntry(fullName)
+        const isExcused = entry.status === 'absent_planned'
         
         return {
           session_id: session.id,
@@ -157,9 +168,10 @@ export default function QuickAttendancePanel({
           status: entry.status,
           late_start: entry.status === 'present' ? entry.late_start : false,
           late_break_count: entry.status === 'present' ? entry.late_break_count : 0,
-          absence_reason: entry.status !== 'present' ? entry.absence_reason || undefined : undefined,
-          absence_excused: entry.status !== 'present' ? entry.absence_excused : false,
-          excuse_teams_url: entry.status !== 'present' ? entry.excuse_teams_url || undefined : undefined,
+          // Excused absences get the excuse fields
+          absence_reason: isExcused ? entry.absence_reason || undefined : undefined,
+          absence_excused: isExcused, // Calendar = excused, X = unexcused
+          excuse_teams_url: isExcused ? entry.excuse_teams_url || undefined : undefined,
         }
       })
 
@@ -322,67 +334,52 @@ export default function QuickAttendancePanel({
                   {/* Absence toggles */}
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => toggleAbsent(fullName, 'absent_planned')}
+                      onClick={() => toggleAbsent(fullName, 'excused')}
                       className={cn(
                         'p-1.5 rounded border transition-all',
                         entry.status === 'absent_planned'
                           ? 'bg-blue-200 dark:bg-blue-800 border-blue-400 dark:border-blue-600 text-blue-800 dark:text-blue-200'
                           : 'bg-card border-border text-muted-foreground hover:bg-muted'
                       )}
-                      title="Plánovaná absence"
+                      title="Omluvená absence"
                     >
                       <Calendar className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => toggleAbsent(fullName, 'absent_unplanned')}
+                      onClick={() => toggleAbsent(fullName, 'unexcused')}
                       className={cn(
                         'p-1.5 rounded border transition-all',
                         entry.status === 'absent_unplanned'
                           ? 'bg-red-200 dark:bg-red-800 border-red-400 dark:border-red-600 text-red-800 dark:text-red-200'
                           : 'bg-card border-border text-muted-foreground hover:bg-muted'
                       )}
-                      title="Neplánovaná absence"
+                      title="Neomluvená absence"
                     >
                       <XCircle className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Expanded Details - auto-shown for absences */}
-                {isAbsent && (
+                {/* Expanded Details - only for excused absences */}
+                {entry.status === 'absent_planned' && (
                   <div className="ml-4 p-2 bg-muted/50 rounded-lg border space-y-2">
                     <Input
-                      placeholder="Důvod absence"
+                      placeholder="Omluva / důvod"
                       value={entry.absence_reason || ''}
                       onChange={(e) =>
                         updateEntry(fullName, { absence_reason: e.target.value })
                       }
                       className="h-8 text-sm"
                     />
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 text-xs shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={entry.absence_excused ?? false}
-                          onChange={(e) =>
-                            updateEntry(fullName, { absence_excused: e.target.checked })
-                          }
-                          className="rounded"
-                        />
-                        Omluvená
-                      </label>
-                      {entry.absence_excused && (
-                        <Input
-                          placeholder="URL na Teams komentář"
-                          value={entry.excuse_teams_url || ''}
-                          onChange={(e) =>
-                            updateEntry(fullName, { excuse_teams_url: e.target.value })
-                          }
-                          className="h-7 text-xs flex-1"
-                          type="url"
-                        />
-                      )}
-                    </div>
+                    <Input
+                      placeholder="URL na Teams komentář"
+                      value={entry.excuse_teams_url || ''}
+                      onChange={(e) =>
+                        updateEntry(fullName, { excuse_teams_url: e.target.value })
+                      }
+                      className="h-8 text-sm"
+                      type="url"
+                    />
                   </div>
                 )}
               </div>
