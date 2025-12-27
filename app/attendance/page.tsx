@@ -20,13 +20,12 @@ import {
   XCircle,
   Calendar,
   Users,
-  TrendingUp,
   Check,
 } from 'lucide-react'
 import type { SessionWithAttendance, AttendanceRecord } from '@/types/session'
 import { TEAM_MEMBERS, getFullName } from '@/lib/team-members'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart } from 'recharts'
 import { cn } from '@/lib/utils'
 
 interface MemberStats {
@@ -208,28 +207,63 @@ export default function AttendancePage() {
     }
   }, [filteredSessions])
 
-  // Late arrivals trend per session
-  const trendData = useMemo(() => {
+  // Attendance data per event (each session is a point, TM and TS separate)
+  const attendanceData = useMemo(() => {
+    const teamSize = TEAM_MEMBERS.length
+    
     return filteredSessions.map(session => {
       const records = session.attendance_records || []
       const date = new Date(session.date)
+      const isTM = session.type === 'team_meeting'
+      const typeLabel = isTM ? 'TM' : 'TS'
       
-      // Count late instances from records
-      let lateStart = 0
-      let lateAfterBreak = 0
+      // Count absences
+      let totalAbsent = 0
+      records.forEach(r => {
+        if (r.status === 'absent_planned' || r.status === 'absent_unplanned') {
+          totalAbsent++
+        }
+      })
+      
+      // Attendance = team size - absences
+      const present = teamSize - totalAbsent
+      const attendanceRate = teamSize > 0 ? Math.round((present / teamSize) * 100) : 100
+      
+      return {
+        label: `${typeLabel} ${date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })}`,
+        fullDate: session.date,
+        type: session.type,
+        typeLabel,
+        attendanceRate,
+        present,
+        totalAbsent,
+      }
+    })
+  }, [filteredSessions])
+
+  // Late arrivals data per event
+  const lateData = useMemo(() => {
+    return filteredSessions.map(session => {
+      const records = session.attendance_records || []
+      const date = new Date(session.date)
+      const isTM = session.type === 'team_meeting'
+      const typeLabel = isTM ? 'TM' : 'TS'
+      
+      // Count late instances
+      let totalLate = 0
       records.forEach(r => {
         if (r.status === 'present') {
-          if (r.late_start) lateStart++
-          lateAfterBreak += r.late_break_count ?? 0
+          if (r.late_start) totalLate++
+          totalLate += r.late_break_count ?? 0
         }
       })
       
       return {
-        date: date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' }),
+        label: `${typeLabel} ${date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })}`,
         fullDate: session.date,
-        lateStart,
-        lateAfterBreak,
-        totalLate: lateStart + lateAfterBreak,
+        type: session.type,
+        typeLabel,
+        totalLate,
       }
     })
   }, [filteredSessions])
@@ -243,10 +277,17 @@ export default function AttendancePage() {
   }, [memberStats])
 
   const chartConfig = {
-    totalLate: {
-      label: 'Pozdě celkem',
-      color: 'hsl(35 92% 50%)',
+    // Attendance
+    attendanceRate: {
+      label: 'Účast %',
+      color: 'hsl(142 76% 36%)', // green
     },
+    // Late arrivals
+    totalLate: {
+      label: 'Pozdě',
+      color: 'hsl(35 92% 50%)', // amber
+    },
+    // For member chart
     lateStart: {
       label: 'Pozdě začátek',
       color: 'hsl(35 92% 50%)',
@@ -372,19 +413,69 @@ export default function AttendancePage() {
 
             {/* Charts */}
             <div className="grid lg:grid-cols-2 gap-6">
-              {/* Late Arrivals Trend */}
+              {/* Attendance Line Chart */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Pozdní příchody v čase
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Účast na schůzkách
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Počet pozdních příchodů na jednotlivých schůzkách
+                    Procento účasti na jednotlivých eventech
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {trendData.every(d => d.totalLate === 0) ? (
+                  <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
+                    <LineChart data={attendanceData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis 
+                        dataKey="label" 
+                        tick={{ fontSize: 9 }} 
+                        tickLine={false}
+                        axisLine={false}
+                        interval={0}
+                        angle={-45}
+                        textAnchor="end"
+                        height={50}
+                      />
+                      <YAxis 
+                        domain={[0, 100]} 
+                        tick={{ fontSize: 10 }} 
+                        tickLine={false}
+                        axisLine={false}
+                        width={30}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+                      <ChartTooltip 
+                        content={<ChartTooltipContent />}
+                        formatter={(value) => [`${value}%`, 'Účast']}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="attendanceRate" 
+                        stroke="var(--color-attendanceRate)" 
+                        strokeWidth={2}
+                        dot={{ r: 4, fill: 'var(--color-attendanceRate)' }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+
+              {/* Late Arrivals Bar Chart */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Pozdní příchody
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Počet pozdních příchodů na jednotlivých eventech
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {lateData.every(d => d.totalLate === 0) ? (
                     <div className="flex flex-col items-center justify-center h-[200px] sm:h-[250px] text-center">
                       <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-3">
                         <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -393,13 +484,17 @@ export default function AttendancePage() {
                     </div>
                   ) : (
                     <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
-                      <BarChart data={trendData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                      <BarChart data={lateData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis 
-                          dataKey="date" 
-                          tick={{ fontSize: 10 }} 
+                          dataKey="label" 
+                          tick={{ fontSize: 9 }} 
                           tickLine={false}
                           axisLine={false}
+                          interval={0}
+                          angle={-45}
+                          textAnchor="end"
+                          height={50}
                         />
                         <YAxis 
                           tick={{ fontSize: 10 }} 
@@ -410,17 +505,9 @@ export default function AttendancePage() {
                         />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <Bar 
-                          dataKey="lateStart" 
-                          stackId="a"
-                          fill="var(--color-lateStart)" 
-                          name="Začátek"
-                          radius={[0, 0, 0, 0]}
-                        />
-                        <Bar 
-                          dataKey="lateAfterBreak" 
-                          stackId="a"
-                          fill="var(--color-lateAfterBreak)" 
-                          name="Přestávka"
+                          dataKey="totalLate" 
+                          fill="var(--color-totalLate)" 
+                          name="Pozdě"
                           radius={[4, 4, 0, 0]}
                         />
                       </BarChart>
