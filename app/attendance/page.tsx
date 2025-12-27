@@ -25,7 +25,7 @@ import {
 import type { SessionWithAttendance, AttendanceRecord } from '@/types/session'
 import { TEAM_MEMBERS, getFullName } from '@/lib/team-members'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, ComposedChart, Scatter, Cell } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
 
 interface MemberStats {
@@ -225,7 +225,7 @@ export default function AttendancePage() {
         }
       })
       
-      // Attendance = team size - absences
+      // Present = team size - absences
       const present = teamSize - totalAbsent
       const attendanceRate = teamSize > 0 ? Math.round((present / teamSize) * 100) : 100
       
@@ -235,12 +235,11 @@ export default function AttendancePage() {
         fullDate: session.date,
         type: session.type,
         typeLabel,
-        // Separate values for TM and TS to enable different colors
-        attendanceTM: isTM ? attendanceRate : null,
-        attendanceTS: !isTM ? attendanceRate : null,
-        attendanceRate,
+        isTM,
         present,
-        totalAbsent,
+        absent: totalAbsent,
+        teamSize,
+        attendanceRate,
       }
     })
   }, [filteredSessions])
@@ -281,14 +280,14 @@ export default function AttendancePage() {
   }, [memberStats])
 
   const chartConfig = {
-    // Attendance by type
-    attendanceTM: {
-      label: 'TM (Team Meeting)',
-      color: 'hsl(221 83% 53%)', // blue
-    },
-    attendanceTS: {
-      label: 'TS (Tréninková schůzka)',
+    // Attendance stacked bar
+    present: {
+      label: 'Přítomni',
       color: 'hsl(142 76% 36%)', // green
+    },
+    absent: {
+      label: 'Absence',
+      color: 'hsl(0 84% 60%)', // red
     },
     // Late arrivals
     totalLate: {
@@ -421,7 +420,7 @@ export default function AttendancePage() {
 
             {/* Charts */}
             <div className="space-y-6">
-              {/* Attendance Line Chart - Full Width */}
+              {/* Attendance Stacked Bar Chart - Full Width */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -429,12 +428,12 @@ export default function AttendancePage() {
                     Účast na schůzkách
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Procento účasti na jednotlivých eventech
+                    Každý sloupec = {TEAM_MEMBERS.length} členů týmu
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] w-full">
-                    <ComposedChart data={attendanceData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                    <BarChart data={attendanceData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis 
                         dataKey="label" 
@@ -447,12 +446,12 @@ export default function AttendancePage() {
                         height={50}
                       />
                       <YAxis 
-                        domain={[0, 100]} 
+                        domain={[0, TEAM_MEMBERS.length]} 
                         tick={{ fontSize: 10 }} 
                         tickLine={false}
                         axisLine={false}
-                        width={35}
-                        tickFormatter={(v) => `${v}%`}
+                        width={25}
+                        ticks={[0, 4, 8, 12, 16]}
                       />
                       <ChartTooltip 
                         content={({ active, payload }) => {
@@ -461,42 +460,49 @@ export default function AttendancePage() {
                           return (
                             <div className="bg-background border rounded-lg shadow-lg p-2 text-sm">
                               <p className="font-medium">{data?.fullLabel}</p>
-                              <p className="text-muted-foreground">Účast: {data?.attendanceRate}%</p>
-                              {data?.totalAbsent > 0 && (
-                                <p className="text-red-500">Absence: {data?.totalAbsent}</p>
+                              <p className="text-green-600">Přítomni: {data?.present}/{data?.teamSize}</p>
+                              {data?.absent > 0 && (
+                                <p className="text-red-500">Absence: {data?.absent}</p>
                               )}
                             </div>
                           )
                         }}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="attendanceRate" 
-                        stroke="hsl(220 14% 70%)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                      <Scatter dataKey="attendanceRate" fill="#8884d8">
+                      <Bar 
+                        dataKey="present" 
+                        stackId="a"
+                        name="Přítomni"
+                        radius={[0, 0, 0, 0]}
+                      >
                         {attendanceData.map((entry, index) => (
                           <Cell 
-                            key={`cell-${index}`} 
-                            fill={entry.type === 'team_meeting' ? 'hsl(221, 83%, 53%)' : 'hsl(142, 76%, 36%)'}
-                            stroke="white"
-                            strokeWidth={2}
+                            key={`present-${index}`} 
+                            fill={entry.isTM ? 'hsl(221, 83%, 53%)' : 'hsl(142, 76%, 36%)'}
                           />
                         ))}
-                      </Scatter>
-                    </ComposedChart>
+                      </Bar>
+                      <Bar 
+                        dataKey="absent" 
+                        stackId="a"
+                        fill="hsl(0, 84%, 60%)"
+                        name="Absence"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
                   </ChartContainer>
                   {/* Legend */}
-                  <div className="flex justify-center gap-6 mt-4 pt-4 border-t">
+                  <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-4 pt-4 border-t">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" />
-                      <span className="text-sm text-muted-foreground">TM (Team Meeting)</span>
+                      <div className="w-3 h-3 rounded-sm bg-blue-500" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">TM (Team Meeting)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-green-600" />
-                      <span className="text-sm text-muted-foreground">TS (Tréninková schůzka)</span>
+                      <div className="w-3 h-3 rounded-sm bg-green-600" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">TS (Tréninková schůzka)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-red-500" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">Absence</span>
                     </div>
                   </div>
                 </CardContent>
