@@ -29,7 +29,7 @@ interface ClockifyProject {
 const EXCLUDED_PROJECTS = ["Osobní"]
 
 // TEST MODE: Only send to these emails (empty array = send to everyone)
-const TEST_EMAILS = ["okulhav@gmail.com"]
+const TEST_EMAILS: string[] = []
 
 function parseDuration(duration: string | null): number {
   if (!duration) return 0
