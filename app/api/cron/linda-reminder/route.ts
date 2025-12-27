@@ -28,6 +28,9 @@ interface ClockifyProject {
 // Project names to exclude from hours calculation
 const EXCLUDED_PROJECTS = ["Osobní"]
 
+// TEST MODE: Only send to these emails (empty array = send to everyone)
+const TEST_EMAILS = ["okulhav@gmail.com"]
+
 function parseDuration(duration: string | null): number {
   if (!duration) return 0
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
@@ -149,6 +152,9 @@ export async function GET(request: NextRequest) {
 
     for (const user of users) {
       if (!user.email) continue
+      
+      // TEST MODE: Skip users not in test list
+      if (TEST_EMAILS.length > 0 && !TEST_EMAILS.includes(user.email)) continue
 
       // Get user's time entries for this week
       const entriesRes = await fetch(
