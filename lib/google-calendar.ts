@@ -42,13 +42,21 @@ export function parseEventDateTime(event: GoogleCalendarEvent): {
     return null
   }
 
-  const startDate = new Date(startDateTime)
-  const endDate = new Date(endDateTime)
+  // Parse the ISO string directly to avoid timezone conversion issues
+  // Format: 2025-12-02T08:00:00+01:00 or 2025-12-02T08:00:00Z
+  // We want to extract the LOCAL time as shown in the calendar
+  
+  const startMatch = startDateTime.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+  const endMatch = endDateTime.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+  
+  if (!startMatch || !endMatch) {
+    return null
+  }
 
   return {
-    date: startDate.toISOString().split('T')[0],
-    startTime: startDate.toTimeString().slice(0, 5), // HH:MM format
-    endTime: endDate.toTimeString().slice(0, 5),
+    date: `${startMatch[1]}-${startMatch[2]}-${startMatch[3]}`,
+    startTime: `${startMatch[4]}:${startMatch[5]}`,
+    endTime: `${endMatch[4]}:${endMatch[5]}`,
   }
 }
 

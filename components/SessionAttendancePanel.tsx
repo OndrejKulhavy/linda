@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -150,28 +149,29 @@ export default function SessionAttendancePanel({
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{session.title}</CardTitle>
-            <CardDescription>
-              {formatSessionType(session.type)} • {formatDate(session.date)}
-              <br />
-              {formatTime(session.start_time)} - {formatTime(session.end_time)}
-            </CardDescription>
-            {session.google_deleted && (
-              <Badge variant="destructive" className="mt-2">
-                Smazáno z Google Calendar
-              </Badge>
-            )}
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+    <div className="h-full flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-start justify-between p-4 border-b shrink-0">
+        <div>
+          <h2 className="text-lg font-semibold">{session.title}</h2>
+          <p className="text-sm text-muted-foreground">
+            {formatSessionType(session.type)} • {formatDate(session.date)}
+            <br />
+            {formatTime(session.start_time)} - {formatTime(session.end_time)}
+          </p>
+          {session.google_deleted && (
+            <Badge variant="destructive" className="mt-2">
+              Smazáno z Google Calendar
+            </Badge>
+          )}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4 overflow-y-auto max-h-[calc(100vh-300px)]">
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {TEAM_MEMBERS.map(member => {
           const fullName = getFullName(member)
           const state = attendance.get(fullName) || { status: '', late_type: '', notes: '' }
@@ -182,12 +182,12 @@ export default function SessionAttendancePanel({
               key={fullName}
               className="border rounded-lg p-3 space-y-2"
             >
-              <div className="flex items-center justify-between">
-                <Label className="font-medium">{fullName}</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="font-medium text-sm">{fullName}</Label>
                 {existingRecord && (
                   <Badge
                     variant="outline"
-                    className={getAttendanceStatusColor(existingRecord.status)}
+                    className={`shrink-0 text-xs ${getAttendanceStatusColor(existingRecord.status)}`}
                   >
                     {formatAttendanceStatus(existingRecord.status)}
                     {existingRecord.late_type && ` (${formatLateType(existingRecord.late_type)})`}
@@ -196,13 +196,13 @@ export default function SessionAttendancePanel({
               </div>
 
               {isLoggedIn ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Select
                     value={state.status}
                     onValueChange={(v) => updateAttendance(fullName, 'status', v)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte status" />
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                       {STATUS_OPTIONS.map(opt => (
@@ -218,8 +218,8 @@ export default function SessionAttendancePanel({
                       value={state.late_type}
                       onValueChange={(v) => updateAttendance(fullName, 'late_type', v)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Typ zpoždění" />
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Typ" />
                       </SelectTrigger>
                       <SelectContent>
                         {LATE_TYPE_OPTIONS.map(opt => (
@@ -233,18 +233,18 @@ export default function SessionAttendancePanel({
 
                   {state.status && (
                     <Textarea
-                      placeholder="Poznámky (volitelné)"
+                      placeholder="Poznámky"
                       value={state.notes}
                       onChange={(e) => updateAttendance(fullName, 'notes', e.target.value)}
-                      className="col-span-full text-sm"
+                      className="col-span-2 text-sm min-h-[60px]"
                       rows={2}
                     />
                   )}
                 </div>
               ) : (
                 !existingRecord && (
-                  <p className="text-sm text-muted-foreground">
-                    Přihlaste se pro úpravu docházky
+                  <p className="text-xs text-muted-foreground">
+                    Přihlaste se pro úpravu
                   </p>
                 )
               )}
@@ -257,8 +257,11 @@ export default function SessionAttendancePanel({
             {error}
           </div>
         )}
+      </div>
 
-        {isLoggedIn && (
+      {/* Footer */}
+      {isLoggedIn && (
+        <div className="p-4 border-t shrink-0">
           <Button
             onClick={handleSave}
             disabled={saving}
@@ -276,8 +279,8 @@ export default function SessionAttendancePanel({
               </>
             )}
           </Button>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   )
 }

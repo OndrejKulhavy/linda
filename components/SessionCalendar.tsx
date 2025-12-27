@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { SessionWithAttendance } from '@/types/session'
-import { getSessionTypeColor, formatTime } from '@/utils/attendance-helpers'
+import { getSessionTypeColor, formatTime, getSessionTypeAbbreviation } from '@/utils/attendance-helpers'
 import { cn } from '@/lib/utils'
 
 interface SessionCalendarProps {
@@ -91,8 +91,11 @@ export default function SessionCalendar({
   }
 
   const getDateString = (day: number) => {
-    const d = new Date(year, month, day)
-    return d.toISOString().split('T')[0]
+    // Use local date formatting to avoid UTC conversion issues
+    const y = year
+    const m = String(month + 1).padStart(2, '0')
+    const d = String(day).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   const isToday = (day: number) => {
@@ -106,29 +109,29 @@ export default function SessionCalendar({
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="capitalize">{formatMonthYear(currentDate)}</CardTitle>
+      <CardHeader className="pb-2 px-3 sm:px-6">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="capitalize text-base sm:text-xl">{formatMonthYear(currentDate)}</CardTitle>
           <div className="flex gap-1">
-            <Button variant="outline" size="sm" onClick={goToToday}>
+            <Button variant="outline" size="sm" onClick={goToToday} className="hidden sm:flex">
               Dnes
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigateMonth(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigateMonth(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-1">
+      <CardContent className="px-2 sm:px-6">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
           {/* Day headers */}
           {DAYS_OF_WEEK.map(day => (
             <div
               key={day}
-              className="text-center text-sm font-medium text-muted-foreground py-2"
+              className="text-center text-xs sm:text-sm font-medium text-muted-foreground py-1 sm:py-2"
             >
               {day}
             </div>
@@ -138,7 +141,7 @@ export default function SessionCalendar({
           {weeks.map((week, weekIndex) =>
             week.map((day, dayIndex) => {
               if (day === null) {
-                return <div key={`empty-${weekIndex}-${dayIndex}`} className="min-h-24" />
+                return <div key={`empty-${weekIndex}-${dayIndex}`} className="min-h-14 sm:min-h-24" />
               }
 
               const dateString = getDateString(day)
@@ -149,12 +152,42 @@ export default function SessionCalendar({
                 <div
                   key={dateString}
                   className={cn(
-                    'min-h-24 border rounded-md p-1 bg-card',
+                    'min-h-14 sm:min-h-24 border rounded-md p-0.5 sm:p-1 bg-card',
                     todayClass
                   )}
                 >
-                  <div className="text-sm font-medium mb-1">{day}</div>
-                  <div className="space-y-1">
+                  <div className="text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 text-center sm:text-left">{day}</div>
+                  
+                  {/* Mobile: Show compact dots/pills */}
+                  <div className="flex flex-wrap gap-0.5 justify-center sm:hidden">
+                    {daySessions.map(session => {
+                      const hasAttendance = session.attendance_records?.length > 0
+                      const isSelected = session.id === selectedSessionId
+                      
+                      return (
+                        <button
+                          key={session.id}
+                          onClick={() => onSessionClick(session)}
+                          className={cn(
+                            'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors',
+                            getSessionTypeColor(session.type),
+                            'text-white hover:opacity-90',
+                            isSelected && 'ring-2 ring-offset-1 ring-primary',
+                            session.google_deleted && 'opacity-50'
+                          )}
+                          title={`${session.title} - ${formatTime(session.start_time)}`}
+                        >
+                          {getSessionTypeAbbreviation(session.type)}
+                          {hasAttendance && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-yellow-400 rounded-full" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  
+                  {/* Desktop: Show full cards */}
+                  <div className="hidden sm:block space-y-1">
                     {daySessions.map(session => {
                       const hasAttendance = session.attendance_records?.length > 0
                       const isSelected = session.id === selectedSessionId
@@ -191,13 +224,16 @@ export default function SessionCalendar({
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 mt-4 text-sm">
-          <div className="flex items-center gap-2">
+        <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm justify-center sm:justify-start">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div className="w-3 h-3 rounded bg-blue-500" />
-            <span>Training Session</span>
+            <span>TS</span>
+            <span className="hidden sm:inline">Training Session</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div className="w-3 h-3 rounded bg-green-500" />
+            <span>TM</span>
+            <span className="hidden sm:inline">Team Meeting</span>
             <span>Team Meeting</span>
           </div>
         </div>

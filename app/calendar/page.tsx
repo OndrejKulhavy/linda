@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ArrowLeft, RefreshCw, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -10,6 +11,7 @@ import SessionCalendar from '@/components/SessionCalendar'
 import SessionAttendancePanel from '@/components/SessionAttendancePanel'
 import type { SessionWithAttendance } from '@/types/session'
 import { toast } from 'sonner'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function CalendarPage() {
   const [sessions, setSessions] = useState<SessionWithAttendance[]>([])
@@ -18,6 +20,7 @@ export default function CalendarPage() {
   const [syncing, setSyncing] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const supabase = createClient()
@@ -119,34 +122,36 @@ export default function CalendarPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap justify-between items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/">
-              <Button variant="ghost">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Zpět
+              <Button variant="ghost" size="sm" className="px-2 sm:px-3">
+                <ArrowLeft className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Zpět</span>
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">Kalendář událostí</h1>
+            <h1 className="text-lg sm:text-2xl font-bold">Kalendář</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {lastSyncAt && (
-              <span className="text-sm text-muted-foreground">
-                Poslední sync: {formatLastSync(lastSyncAt)}
+              <span className="hidden sm:inline text-sm text-muted-foreground">
+                Sync: {formatLastSync(lastSyncAt)}
               </span>
             )}
             {isLoggedIn && (
               <Button
                 variant="outline"
+                size="sm"
                 onClick={syncWithGoogleCalendar}
                 disabled={syncing}
+                className="px-2 sm:px-3"
               >
                 {syncing ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-4 w-4" />
                 )}
-                Synchronizovat
+                <span className="hidden sm:inline ml-2">Sync</span>
               </Button>
             )}
             <ThemeToggle />
@@ -159,19 +164,17 @@ export default function CalendarPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Calendar */}
-            <div className={selectedSession ? 'lg:col-span-2' : 'lg:col-span-3'}>
-              <SessionCalendar
-                sessions={sessions}
-                onSessionClick={handleSessionClick}
-                selectedSessionId={selectedSession?.id}
-              />
-            </div>
+          <>
+            {/* Calendar - always full width on mobile */}
+            <SessionCalendar
+              sessions={sessions}
+              onSessionClick={handleSessionClick}
+              selectedSessionId={selectedSession?.id}
+            />
 
-            {/* Attendance Panel */}
-            {selectedSession && (
-              <div className="lg:col-span-1">
+            {/* Desktop: Side panel */}
+            {!isMobile && selectedSession && (
+              <div className="hidden lg:block fixed right-6 top-24 w-96 max-h-[calc(100vh-120px)] overflow-auto">
                 <SessionAttendancePanel
                   session={selectedSession}
                   onClose={handlePanelClose}
@@ -180,7 +183,26 @@ export default function CalendarPage() {
                 />
               </div>
             )}
-          </div>
+
+            {/* Mobile: Bottom sheet */}
+            {isMobile && (
+              <Sheet open={!!selectedSession} onOpenChange={(open) => !open && handlePanelClose()}>
+                <SheetContent side="bottom" className="h-[85vh] p-0">
+                  <SheetTitle className="sr-only">
+                    {selectedSession?.title || 'Docházka'}
+                  </SheetTitle>
+                  {selectedSession && (
+                    <SessionAttendancePanel
+                      session={selectedSession}
+                      onClose={handlePanelClose}
+                      onSave={handleAttendanceSave}
+                      isLoggedIn={isLoggedIn}
+                    />
+                  )}
+                </SheetContent>
+              </Sheet>
+            )}
+          </>
         )}
 
         {/* Info for non-logged in users */}
