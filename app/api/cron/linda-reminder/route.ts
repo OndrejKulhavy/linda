@@ -129,17 +129,18 @@ export async function GET(request: NextRequest) {
     const hoursThreshold = expectedHours * THRESHOLD_PERCENTAGE
 
     // Skip reminders if there's more than one holiday this week (e.g., Christmas week)
-    if (holidays.length > 1) {
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: `Week has ${holidays.length} holidays - skipping reminders`,
-        dateRange: { from, to },
-        workingDays,
-        expectedHours,
-        holidays: holidays.map((h) => ({ date: h.date.toISOString().split("T")[0], name: h.name })),
-      })
-    }
+    // TEMPORARILY DISABLED FOR TESTING
+    // if (holidays.length > 1) {
+    //   return NextResponse.json({
+    //     success: true,
+    //     skipped: true,
+    //     reason: `Week has ${holidays.length} holidays - skipping reminders`,
+    //     dateRange: { from, to },
+    //     workingDays,
+    //     expectedHours,
+    //     holidays: holidays.map((h) => ({ date: h.date.toISOString().split("T")[0], name: h.name })),
+    //   })
+    // }
 
     const results: {
       user: string
