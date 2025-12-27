@@ -25,7 +25,7 @@ import {
 import type { SessionWithAttendance, AttendanceRecord } from '@/types/session'
 import { TEAM_MEMBERS, getFullName } from '@/lib/team-members'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, ComposedChart, Scatter, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
 
 interface MemberStats {
@@ -230,10 +230,14 @@ export default function AttendancePage() {
       const attendanceRate = teamSize > 0 ? Math.round((present / teamSize) * 100) : 100
       
       return {
-        label: `${typeLabel} ${date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })}`,
+        label: `${date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })}`,
+        fullLabel: `${typeLabel} ${date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })}`,
         fullDate: session.date,
         type: session.type,
         typeLabel,
+        // Separate values for TM and TS to enable different colors
+        attendanceTM: isTM ? attendanceRate : null,
+        attendanceTS: !isTM ? attendanceRate : null,
         attendanceRate,
         present,
         totalAbsent,
@@ -277,9 +281,13 @@ export default function AttendancePage() {
   }, [memberStats])
 
   const chartConfig = {
-    // Attendance
-    attendanceRate: {
-      label: 'Účast %',
+    // Attendance by type
+    attendanceTM: {
+      label: 'TM (Team Meeting)',
+      color: 'hsl(221 83% 53%)', // blue
+    },
+    attendanceTS: {
+      label: 'TS (Tréninková schůzka)',
       color: 'hsl(142 76% 36%)', // green
     },
     // Late arrivals
@@ -412,8 +420,8 @@ export default function AttendancePage() {
             </div>
 
             {/* Charts */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Attendance Line Chart */}
+            <div className="space-y-6">
+              {/* Attendance Line Chart - Full Width */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -425,12 +433,12 @@ export default function AttendancePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
-                    <LineChart data={attendanceData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                  <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] w-full">
+                    <ComposedChart data={attendanceData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis 
                         dataKey="label" 
-                        tick={{ fontSize: 9 }} 
+                        tick={{ fontSize: 10 }} 
                         tickLine={false}
                         axisLine={false}
                         interval={0}
@@ -443,25 +451,58 @@ export default function AttendancePage() {
                         tick={{ fontSize: 10 }} 
                         tickLine={false}
                         axisLine={false}
-                        width={30}
+                        width={35}
                         tickFormatter={(v) => `${v}%`}
                       />
                       <ChartTooltip 
-                        content={<ChartTooltipContent />}
-                        formatter={(value) => [`${value}%`, 'Účast']}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null
+                          const data = payload[0]?.payload
+                          return (
+                            <div className="bg-background border rounded-lg shadow-lg p-2 text-sm">
+                              <p className="font-medium">{data?.fullLabel}</p>
+                              <p className="text-muted-foreground">Účast: {data?.attendanceRate}%</p>
+                              {data?.totalAbsent > 0 && (
+                                <p className="text-red-500">Absence: {data?.totalAbsent}</p>
+                              )}
+                            </div>
+                          )
+                        }}
                       />
                       <Line 
                         type="monotone" 
                         dataKey="attendanceRate" 
-                        stroke="var(--color-attendanceRate)" 
+                        stroke="hsl(220 14% 70%)"
                         strokeWidth={2}
-                        dot={{ r: 4, fill: 'var(--color-attendanceRate)' }}
-                        activeDot={{ r: 6 }}
+                        dot={false}
                       />
-                    </LineChart>
+                      <Scatter dataKey="attendanceRate" fill="#8884d8">
+                        {attendanceData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.type === 'team_meeting' ? 'hsl(221, 83%, 53%)' : 'hsl(142, 76%, 36%)'}
+                            stroke="white"
+                            strokeWidth={2}
+                          />
+                        ))}
+                      </Scatter>
+                    </ComposedChart>
                   </ChartContainer>
+                  {/* Legend */}
+                  <div className="flex justify-center gap-6 mt-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500" />
+                      <span className="text-sm text-muted-foreground">TM (Team Meeting)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-600" />
+                      <span className="text-sm text-muted-foreground">TS (Tréninková schůzka)</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
+            <div className="grid lg:grid-cols-2 gap-6">
 
               {/* Late Arrivals Bar Chart */}
               <Card>
@@ -572,6 +613,7 @@ export default function AttendancePage() {
                   )}
                 </CardContent>
               </Card>
+            </div>
             </div>
 
             {/* Member Table */}
