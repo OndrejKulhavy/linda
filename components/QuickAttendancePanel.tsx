@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   X,
   Save,
@@ -14,8 +13,6 @@ import {
   Coffee,
   XCircle,
   Calendar,
-  ChevronDown,
-  ChevronUp,
   Plus,
   Minus,
 } from 'lucide-react'
@@ -42,9 +39,9 @@ interface AttendanceEntry {
   status: AttendanceStatus // 'present' | 'absent_planned' | 'absent_unplanned'
   late_start: boolean
   late_break_count: number
-  notes?: string
   absence_reason?: string
   absence_excused?: boolean
+  excuse_teams_url?: string
 }
 
 // Default entry: present, on time
@@ -52,6 +49,8 @@ const DEFAULT_ENTRY: AttendanceEntry = {
   status: 'present',
   late_start: false,
   late_break_count: 0,
+  absence_excused: false,
+  excuse_teams_url: undefined,
 }
 
 export default function QuickAttendancePanel({
@@ -60,7 +59,6 @@ export default function QuickAttendancePanel({
   onSave,
 }: QuickAttendancePanelProps) {
   const [attendance, setAttendance] = useState<Map<string, AttendanceEntry>>(new Map())
-  const [expandedMember, setExpandedMember] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -74,9 +72,9 @@ export default function QuickAttendancePanel({
         status: isLegacyLate ? 'present' : record.status,
         late_start: record.late_start ?? (isLegacyLate && record.late_type === 'start'),
         late_break_count: record.late_break_count ?? (isLegacyLate && record.late_type === 'after_break' ? 1 : 0),
-        notes: record.notes || undefined,
         absence_reason: record.absence_reason || undefined,
-        absence_excused: record.absence_excused ?? undefined,
+        absence_excused: record.absence_excused ?? false,
+        excuse_teams_url: record.excuse_teams_url || undefined,
       })
     })
     setAttendance(initial)
@@ -143,10 +141,6 @@ export default function QuickAttendancePanel({
     })
   }
 
-  const clearAll = () => {
-    setAttendance(new Map())
-  }
-
   const handleSave = async () => {
     setSaving(true)
     setError(null)
@@ -163,9 +157,9 @@ export default function QuickAttendancePanel({
           status: entry.status,
           late_start: entry.status === 'present' ? entry.late_start : false,
           late_break_count: entry.status === 'present' ? entry.late_break_count : 0,
-          notes: entry.notes || undefined,
-          absence_reason: entry.absence_reason || undefined,
-          absence_excused: entry.absence_excused,
+          absence_reason: entry.status !== 'present' ? entry.absence_reason || undefined : undefined,
+          absence_excused: entry.status !== 'present' ? entry.absence_excused : false,
+          excuse_teams_url: entry.status !== 'present' ? entry.excuse_teams_url || undefined : undefined,
         }
       })
 
@@ -252,7 +246,6 @@ export default function QuickAttendancePanel({
           {TEAM_MEMBERS.map(member => {
             const fullName = getFullName(member)
             const entry = getEntry(fullName)
-            const isExpanded = expandedMember === fullName
             const isAbsent = entry.status !== 'present'
             const isLate = entry.late_start || entry.late_break_count > 0
 
@@ -353,53 +346,43 @@ export default function QuickAttendancePanel({
                       <XCircle className="w-4 h-4" />
                     </button>
                   </div>
-
-                  {/* Expand button */}
-                  <button
-                    onClick={() => setExpandedMember(isExpanded ? null : fullName)}
-                    className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
-                  >
-                    {isExpanded ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
                 </div>
 
-                {/* Expanded Details */}
-                {isExpanded && (
+                {/* Expanded Details - auto-shown for absences */}
+                {isAbsent && (
                   <div className="ml-4 p-2 bg-muted/50 rounded-lg border space-y-2">
-                    {isAbsent && (
-                      <div className="space-y-1.5">
-                        <Input
-                          placeholder="Důvod absence"
-                          value={entry.absence_reason || ''}
-                          onChange={(e) =>
-                            updateEntry(fullName, { absence_reason: e.target.value })
-                          }
-                          className="h-8 text-sm"
-                        />
-                        <label className="flex items-center gap-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={entry.absence_excused ?? false}
-                            onChange={(e) =>
-                              updateEntry(fullName, { absence_excused: e.target.checked })
-                            }
-                            className="rounded"
-                          />
-                          Omluvená absence
-                        </label>
-                      </div>
-                    )}
-                    <Textarea
-                      placeholder="Poznámky..."
-                      value={entry.notes || ''}
-                      onChange={(e) => updateEntry(fullName, { notes: e.target.value })}
-                      className="text-sm min-h-[50px]"
-                      rows={2}
+                    <Input
+                      placeholder="Důvod absence"
+                      value={entry.absence_reason || ''}
+                      onChange={(e) =>
+                        updateEntry(fullName, { absence_reason: e.target.value })
+                      }
+                      className="h-8 text-sm"
                     />
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={entry.absence_excused ?? false}
+                          onChange={(e) =>
+                            updateEntry(fullName, { absence_excused: e.target.checked })
+                          }
+                          className="rounded"
+                        />
+                        Omluvená
+                      </label>
+                      {entry.absence_excused && (
+                        <Input
+                          placeholder="URL na Teams komentář"
+                          value={entry.excuse_teams_url || ''}
+                          onChange={(e) =>
+                            updateEntry(fullName, { excuse_teams_url: e.target.value })
+                          }
+                          className="h-7 text-xs flex-1"
+                          type="url"
+                        />
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

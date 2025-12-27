@@ -32,6 +32,8 @@ export interface AttendanceRecord {
   notes: string | null
   absence_reason: string | null
   absence_excused: boolean
+  // URL to MS Teams comment where they excused themselves
+  excuse_teams_url: string | null
   created_by: string
   created_at: string
 }

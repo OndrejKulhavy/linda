@@ -13,6 +13,7 @@ interface BulkAttendanceEntry {
   notes?: string
   absence_reason?: string
   absence_excused?: boolean
+  excuse_teams_url?: string
 }
 
 export async function POST(request: Request) {
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
       notes: entry.notes || null,
       absence_reason: isAbsence ? (entry.absence_reason || null) : null,
       absence_excused: isAbsence ? (entry.absence_excused ?? false) : false,
+      excuse_teams_url: isAbsence ? (entry.excuse_teams_url || null) : null,
       created_by: user.id,
     }
   })
