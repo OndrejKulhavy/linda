@@ -17,7 +17,7 @@ export async function sendEmail({
 }) {
   try {
     const { data, error } = await resend.emails.send({
-      from: "Linda <linda@tuuli.cz>",
+      from: "Linda z Tuuli <linda@tuuli.cz>",
       to,
       subject,
       html,
