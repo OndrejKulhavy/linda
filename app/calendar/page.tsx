@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { ArrowLeft, RefreshCw, Loader2 } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Loader2, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import SessionCalendar from '@/components/SessionCalendar'
-import SessionAttendancePanel from '@/components/SessionAttendancePanel'
+import QuickAttendancePanel from '@/components/QuickAttendancePanel'
+import AttendanceSummary from '@/components/AttendanceSummary'
 import type { SessionWithAttendance } from '@/types/session'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -139,6 +140,14 @@ export default function CalendarPage() {
               </span>
             )}
             {isLoggedIn && (
+              <Link href="/attendance">
+                <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-2">Statistiky</span>
+                </Button>
+              </Link>
+            )}
+            {isLoggedIn && (
               <Button
                 variant="outline"
                 size="sm"
@@ -164,45 +173,59 @@ export default function CalendarPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <>
-            {/* Calendar - always full width on mobile */}
-            <SessionCalendar
-              sessions={sessions}
-              onSessionClick={handleSessionClick}
-              selectedSessionId={selectedSession?.id}
-            />
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Calendar */}
+            <div className={selectedSession ? 'lg:flex-1' : 'w-full'}>
+              <SessionCalendar
+                sessions={sessions}
+                onSessionClick={handleSessionClick}
+                selectedSessionId={selectedSession?.id}
+              />
+            </div>
 
             {/* Desktop: Side panel */}
-            {!isMobile && selectedSession && (
-              <div className="hidden lg:block fixed right-6 top-24 w-96 max-h-[calc(100vh-120px)] overflow-auto">
-                <SessionAttendancePanel
-                  session={selectedSession}
-                  onClose={handlePanelClose}
-                  onSave={handleAttendanceSave}
-                  isLoggedIn={isLoggedIn}
-                />
+            {selectedSession && (
+              <div className="hidden lg:block w-96 shrink-0">
+                <div className="sticky top-6">
+                  {isLoggedIn ? (
+                    <QuickAttendancePanel
+                      session={selectedSession}
+                      onClose={handlePanelClose}
+                      onSave={handleAttendanceSave}
+                    />
+                  ) : (
+                    <AttendanceSummary
+                      session={selectedSession}
+                      onClose={handlePanelClose}
+                    />
+                  )}
+                </div>
               </div>
             )}
 
             {/* Mobile: Bottom sheet */}
-            {isMobile && (
-              <Sheet open={!!selectedSession} onOpenChange={(open) => !open && handlePanelClose()}>
-                <SheetContent side="bottom" className="h-[85vh] p-0">
-                  <SheetTitle className="sr-only">
-                    {selectedSession?.title || 'Docházka'}
-                  </SheetTitle>
-                  {selectedSession && (
-                    <SessionAttendancePanel
+            <Sheet open={!!selectedSession && isMobile} onOpenChange={(open) => !open && handlePanelClose()}>
+              <SheetContent side="bottom" className="h-[85vh] p-0">
+                <SheetTitle className="sr-only">
+                  {selectedSession?.title || 'Docházka'}
+                </SheetTitle>
+                {selectedSession && (
+                  isLoggedIn ? (
+                    <QuickAttendancePanel
                       session={selectedSession}
                       onClose={handlePanelClose}
                       onSave={handleAttendanceSave}
-                      isLoggedIn={isLoggedIn}
                     />
-                  )}
-                </SheetContent>
-              </Sheet>
-            )}
-          </>
+                  ) : (
+                    <AttendanceSummary
+                      session={selectedSession}
+                      onClose={handlePanelClose}
+                    />
+                  )
+                )}
+              </SheetContent>
+            </Sheet>
+          </div>
         )}
 
         {/* Info for non-logged in users */}

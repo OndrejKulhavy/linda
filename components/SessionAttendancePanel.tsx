@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { X, Save, Loader2 } from 'lucide-react'
-import type { SessionWithAttendance, AttendanceStatus, LateType, AttendanceRecord } from '@/types/session'
+import type { SessionWithAttendance, AttendanceStatus, AttendanceRecord } from '@/types/session'
 import { TEAM_MEMBERS, getFullName } from '@/lib/team-members'
 import {
   formatSessionType,
@@ -21,7 +21,6 @@ import {
   formatTime,
   getAttendanceStatusColor,
   formatAttendanceStatus,
-  formatLateType,
 } from '@/utils/attendance-helpers'
 
 interface SessionAttendancePanelProps {
@@ -33,20 +32,15 @@ interface SessionAttendancePanelProps {
 
 interface AttendanceState {
   status: AttendanceStatus | ''
-  late_type: LateType | ''
+  late_start: boolean
+  late_break_count: number
   notes: string
 }
 
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
   { value: 'present', label: 'Přítomen/a' },
-  { value: 'late', label: 'Pozdě' },
   { value: 'absent_planned', label: 'Absence (plánovaná)' },
   { value: 'absent_unplanned', label: 'Absence (neplánovaná)' },
-]
-
-const LATE_TYPE_OPTIONS: { value: LateType; label: string }[] = [
-  { value: 'start', label: 'Pozdě na začátek' },
-  { value: 'after_break', label: 'Pozdě po přestávce' },
 ]
 
 export default function SessionAttendancePanel({
@@ -67,7 +61,8 @@ export default function SessionAttendancePanel({
     session.attendance_records?.forEach((record: AttendanceRecord) => {
       initialState.set(record.employee_name, {
         status: record.status,
-        late_type: record.late_type || '',
+        late_start: record.late_start ?? false,
+        late_break_count: record.late_break_count ?? 0,
         notes: record.notes || '',
       })
     })
@@ -78,25 +73,31 @@ export default function SessionAttendancePanel({
   const updateAttendance = (
     employeeName: string,
     field: keyof AttendanceState,
-    value: string
+    value: string | boolean | number
   ) => {
     setAttendance(prev => {
       const newMap = new Map(prev)
-      const current = newMap.get(employeeName) || { status: '', late_type: '', notes: '' }
+      const current = newMap.get(employeeName) || { status: '', late_start: false, late_break_count: 0, notes: '' }
       
-      // If changing status away from 'late', clear late_type
-      if (field === 'status' && value !== 'late') {
-        newMap.set(employeeName, { 
-          ...current, 
-          status: value as AttendanceStatus | '', 
-          late_type: '' 
-        })
-      } else if (field === 'status') {
-        newMap.set(employeeName, { ...current, status: value as AttendanceStatus | '' })
-      } else if (field === 'late_type') {
-        newMap.set(employeeName, { ...current, late_type: value as LateType | '' })
+      if (field === 'status') {
+        // If changing to absence, reset late fields
+        const newStatus = value as AttendanceStatus | ''
+        if (newStatus === 'absent_planned' || newStatus === 'absent_unplanned') {
+          newMap.set(employeeName, { 
+            ...current, 
+            status: newStatus, 
+            late_start: false,
+            late_break_count: 0
+          })
+        } else {
+          newMap.set(employeeName, { ...current, status: newStatus })
+        }
+      } else if (field === 'late_start') {
+        newMap.set(employeeName, { ...current, late_start: value as boolean })
+      } else if (field === 'late_break_count') {
+        newMap.set(employeeName, { ...current, late_break_count: value as number })
       } else {
-        newMap.set(employeeName, { ...current, notes: value })
+        newMap.set(employeeName, { ...current, notes: value as string })
       }
       
       return newMap
@@ -115,7 +116,8 @@ export default function SessionAttendancePanel({
           session_id: session.id,
           employee_name: employeeName,
           status: state.status,
-          late_type: state.status === 'late' ? state.late_type || undefined : undefined,
+          late_start: state.status === 'present' ? state.late_start : false,
+          late_break_count: state.status === 'present' ? state.late_break_count : 0,
           notes: state.notes || undefined,
         }))
 
@@ -149,9 +151,9 @@ export default function SessionAttendancePanel({
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background border rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="flex items-start justify-between p-4 border-b shrink-0">
+      <div className="flex items-start justify-between p-4 border-b shrink-0 bg-card">
         <div>
           <h2 className="text-lg font-semibold">{session.title}</h2>
           <p className="text-sm text-muted-foreground">
@@ -174,8 +176,16 @@ export default function SessionAttendancePanel({
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {TEAM_MEMBERS.map(member => {
           const fullName = getFullName(member)
-          const state = attendance.get(fullName) || { status: '', late_type: '', notes: '' }
+          const state = attendance.get(fullName) || { status: '', late_start: false, late_break_count: 0, notes: '' }
           const existingRecord = getExistingRecord(fullName)
+          
+          // Build late status string
+          const getLateLabel = (record: AttendanceRecord): string => {
+            const parts: string[] = []
+            if (record.late_start) parts.push('pozdě start')
+            if (record.late_break_count > 0) parts.push(`pozdě po přestávce (${record.late_break_count}×)`)
+            return parts.length > 0 ? ` - ${parts.join(', ')}` : ''
+          }
 
           return (
             <div
@@ -190,7 +200,7 @@ export default function SessionAttendancePanel({
                     className={`shrink-0 text-xs ${getAttendanceStatusColor(existingRecord.status)}`}
                   >
                     {formatAttendanceStatus(existingRecord.status)}
-                    {existingRecord.late_type && ` (${formatLateType(existingRecord.late_type)})`}
+                    {getLateLabel(existingRecord)}
                   </Badge>
                 )}
               </div>
@@ -213,22 +223,28 @@ export default function SessionAttendancePanel({
                     </SelectContent>
                   </Select>
 
-                  {state.status === 'late' && (
-                    <Select
-                      value={state.late_type}
-                      onValueChange={(v) => updateAttendance(fullName, 'late_type', v)}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Typ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LATE_TYPE_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  {state.status === 'present' && (
+                    <div className="flex gap-2 items-center">
+                      <label className="flex items-center gap-1 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={state.late_start}
+                          onChange={(e) => updateAttendance(fullName, 'late_start', e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        Pozdě start
+                      </label>
+                      <label className="flex items-center gap-1 text-xs">
+                        Přestávky:
+                        <input
+                          type="number"
+                          min={0}
+                          value={state.late_break_count}
+                          onChange={(e) => updateAttendance(fullName, 'late_break_count', parseInt(e.target.value) || 0)}
+                          className="w-12 h-6 text-center border rounded"
+                        />
+                      </label>
+                    </div>
                   )}
 
                   {state.status && (

@@ -1,13 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { determineLateType } from '@/utils/attendance-helpers'
 
 interface BulkAttendanceEntry {
   session_id: string
   employee_name: string
   status: string
+  // New late tracking fields
+  late_start?: boolean
+  late_break_count?: number
+  // Legacy field
   late_type?: string
   notes?: string
+  absence_reason?: string
+  absence_excused?: boolean
 }
 
 export async function POST(request: Request) {
@@ -29,33 +34,23 @@ export async function POST(request: Request) {
     )
   }
 
-  // Get unique session IDs for late type detection
-  const sessionIds = [...new Set(entries.map(e => e.session_id))]
-  
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select('id, start_time, date')
-    .in('id', sessionIds)
-
-  const sessionMap = new Map(sessions?.map(s => [s.id, s]) || [])
-
-  // Process entries with auto late type detection
+  // Process entries
   const processedEntries = entries.map(entry => {
-    let finalLateType = entry.late_type
-
-    if (entry.status === 'late' && !entry.late_type) {
-      const session = sessionMap.get(entry.session_id)
-      if (session) {
-        finalLateType = determineLateType(session.start_time, session.date)
-      }
-    }
+    const isPresent = entry.status === 'present'
+    const isAbsence = entry.status === 'absent_planned' || entry.status === 'absent_unplanned'
 
     return {
       session_id: entry.session_id,
       employee_name: entry.employee_name,
       status: entry.status,
-      late_type: entry.status === 'late' ? finalLateType : null,
+      // New late fields - only for present people
+      late_start: isPresent ? (entry.late_start ?? false) : false,
+      late_break_count: isPresent ? (entry.late_break_count ?? 0) : 0,
+      // Legacy field - keep null for new records
+      late_type: null,
       notes: entry.notes || null,
+      absence_reason: isAbsence ? (entry.absence_reason || null) : null,
+      absence_excused: isAbsence ? (entry.absence_excused ?? false) : false,
       created_by: user.id,
     }
   })

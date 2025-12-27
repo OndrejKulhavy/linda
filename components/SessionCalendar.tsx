@@ -3,10 +3,9 @@
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { SessionWithAttendance } from '@/types/session'
-import { getSessionTypeColor, formatTime, getSessionTypeAbbreviation } from '@/utils/attendance-helpers'
+import { ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react'
+import type { SessionWithAttendance, SessionAttendanceStats } from '@/types/session'
+import { getSessionTypeColor, formatTime, getSessionTypeAbbreviation, calculateSessionStats } from '@/utils/attendance-helpers'
 import { cn } from '@/lib/utils'
 
 interface SessionCalendarProps {
@@ -161,15 +160,16 @@ export default function SessionCalendar({
                   {/* Mobile: Show compact dots/pills */}
                   <div className="flex flex-wrap gap-0.5 justify-center sm:hidden">
                     {daySessions.map(session => {
-                      const hasAttendance = session.attendance_records?.length > 0
+                      const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
+                      const issueCount = stats.late + stats.absentUnplanned
                       
                       return (
                         <button
                           key={session.id}
                           onClick={() => onSessionClick(session)}
                           className={cn(
-                            'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors',
+                            'relative w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors',
                             getSessionTypeColor(session.type),
                             'text-white hover:opacity-90',
                             isSelected && 'ring-2 ring-offset-1 ring-primary',
@@ -178,8 +178,15 @@ export default function SessionCalendar({
                           title={`${session.title} - ${formatTime(session.start_time)}`}
                         >
                           {getSessionTypeAbbreviation(session.type)}
-                          {hasAttendance && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-yellow-400 rounded-full" />
+                          {stats.total > 0 && issueCount > 0 && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center text-[8px]">
+                              {issueCount}
+                            </span>
+                          )}
+                          {stats.total > 0 && issueCount === 0 && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                              <Check className="w-2 h-2" />
+                            </span>
                           )}
                         </button>
                       )
@@ -189,8 +196,9 @@ export default function SessionCalendar({
                   {/* Desktop: Show full cards */}
                   <div className="hidden sm:block space-y-1">
                     {daySessions.map(session => {
-                      const hasAttendance = session.attendance_records?.length > 0
+                      const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
+                      const issueCount = stats.late + stats.absentUnplanned
                       
                       return (
                         <button
@@ -208,10 +216,19 @@ export default function SessionCalendar({
                             {formatTime(session.start_time)}
                           </div>
                           <div className="truncate">{session.title}</div>
-                          {hasAttendance && (
-                            <Badge variant="secondary" className="mt-0.5 text-[10px] px-1 py-0">
-                              {session.attendance_records.length} záznamů
-                            </Badge>
+                          {stats.total > 0 && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="inline-flex items-center gap-0.5 bg-white/20 rounded px-1 text-[10px]">
+                                <Check className="w-2.5 h-2.5" />
+                                {stats.present}
+                              </span>
+                              {issueCount > 0 && (
+                                <span className="inline-flex items-center gap-0.5 bg-amber-500/80 rounded px-1 text-[10px]">
+                                  <AlertTriangle className="w-2.5 h-2.5" />
+                                  {issueCount}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </button>
                       )
@@ -224,17 +241,24 @@ export default function SessionCalendar({
         </div>
 
         {/* Legend */}
-        <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm justify-center sm:justify-start">
+        <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm justify-center sm:justify-start flex-wrap">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <div className="w-3 h-3 rounded bg-blue-500" />
             <span>TS</span>
-            <span className="hidden sm:inline">Training Session</span>
+            <span className="hidden sm:inline text-muted-foreground">Training Session</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <div className="w-3 h-3 rounded bg-green-500" />
             <span>TM</span>
-            <span className="hidden sm:inline">Team Meeting</span>
-            <span>Team Meeting</span>
+            <span className="hidden sm:inline text-muted-foreground">Team Meeting</span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Check className="w-3 h-3 text-green-500" />
+            <span className="text-muted-foreground">OK</span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <AlertTriangle className="w-3 h-3 text-amber-500" />
+            <span className="text-muted-foreground">Problémy</span>
           </div>
         </div>
       </CardContent>

@@ -1,4 +1,5 @@
-import type { LateType, SessionType } from '@/types/session'
+import type { LateType, SessionType, SessionWithAttendance, SessionAttendanceStats, AttendanceRecord } from '@/types/session'
+import { TEAM_MEMBERS } from '@/lib/team-members'
 
 /**
  * Determines the late type based on current time and session start time.
@@ -30,6 +31,71 @@ export function determineLateType(
   
   // Otherwise, assume it's after break
   return 'after_break'
+}
+
+/**
+ * Calculate attendance statistics for a session
+ */
+export function calculateSessionStats(session: SessionWithAttendance): SessionAttendanceStats {
+  const total = TEAM_MEMBERS.length
+  const records = session.attendance_records || []
+  
+  let present = 0
+  let late = 0
+  let lateStart = 0
+  let lateAfterBreak = 0
+  let absentPlanned = 0
+  let absentUnplanned = 0
+  
+  records.forEach(record => {
+    switch (record.status) {
+      case 'present':
+        present++
+        // Check new late fields
+        if (record.late_start) {
+          late++
+          lateStart++
+        }
+        if (record.late_break_count > 0) {
+          late += record.late_break_count
+          lateAfterBreak += record.late_break_count
+        }
+        break
+      case 'absent_planned':
+        absentPlanned++
+        break
+      case 'absent_unplanned':
+        absentUnplanned++
+        break
+    }
+  })
+  
+  const notRecorded = total - records.length
+  
+  return {
+    total,
+    present,
+    late,
+    lateStart,
+    lateAfterBreak,
+    absentPlanned,
+    absentUnplanned,
+    notRecorded,
+  }
+}
+
+/**
+ * Get records with issues (late or absent)
+ */
+export function getIssueRecords(records: AttendanceRecord[]): AttendanceRecord[] {
+  return records.filter(r => r.status !== 'present')
+}
+
+/**
+ * Check if session has any attendance recorded
+ */
+export function hasAttendanceRecorded(session: SessionWithAttendance): boolean {
+  return (session.attendance_records?.length || 0) > 0
 }
 
 /**
