@@ -18,6 +18,21 @@ Linda integrates with Clockify time tracking and Supabase authentication to prov
 - **Projects Distribution**: Pie chart showing time allocation across different projects
 - **Late Arrivals Chart**: Track and visualize attendance patterns
 - **Competition View**: Compare team members' performance metrics
+- **Individual Performance Dashboard**: NEW! Detailed metrics for each team member
+  - Weekly/monthly performance trends
+  - Personal metrics cards (avg hours, project distribution, consistency)
+  - Comparison with team averages
+  - Project distribution and activity breakdown charts
+- **Team Productivity Trends**: NEW! Multi-week team analysis
+  - Team velocity metrics and trend indicators
+  - Active member tracking
+  - Goal achievers monitoring
+  - Project trends over time
+- **Performance Leaderboard**: NEW! Gamified team rankings
+  - Top 3 podium display
+  - Full ranking table with detailed statistics
+  - Multiple sorting options (total hours, average, consistency)
+  - Achievement badges and indicators
 
 ### 🔐 Authentication & Access Control
 - Secure authentication powered by Supabase
@@ -128,7 +143,30 @@ npm run start
 - **Čtyřicethodin (40-Hour Week)**: Track accumulated hours against the weekly target
 - **Koláček (Projects Pie)**: See time distribution across different projects
 - **Soutěž (Competition)**: Compare team member performance
-- **Pozdní příchody (Late Arrivals)**: Monitor attendance patterns
+- **Výkon (Performance)**: NEW! Individual performance dashboard with detailed metrics and trends
+- **Trendy (Trends)**: NEW! Team productivity trends and multi-week analysis
+- **Žebříček (Leaderboard)**: NEW! Performance rankings and gamified view of team achievements
+- **Docházka (Attendance)**: Calendar and attendance tracking with statistics
+
+### Using the New Analytics Features
+
+**Individual Performance Dashboard**:
+1. Navigate to `/charts/performance`
+2. Select a team member from the dropdown
+3. Choose time period (4, 8, or 12 weeks)
+4. View detailed metrics including weekly trends, project distribution, and activity breakdown
+
+**Team Trends**:
+1. Navigate to `/charts/trends`
+2. Automatically displays the last 8 weeks of team data
+3. View team-wide metrics, trends, and project evolution
+4. Use trend indicators to identify improvements or concerns
+
+**Performance Leaderboard**:
+1. Navigate to `/charts/leaderboard`
+2. Select time period and sorting criteria
+3. View podium display of top 3 performers
+4. Explore full rankings and detailed statistics table
 
 ### Adding Attendance
 
