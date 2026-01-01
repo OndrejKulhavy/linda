@@ -224,14 +224,17 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
     }
 
     return Array.from(userHours.entries())
-      .map(([name, hours], index) => ({
-        name,
-        // Use minimum display value to ensure users with 0 hours are still visible in the treemap
-        hours: hours === 0 ? MIN_DISPLAY_HOURS : Math.round(hours),
-        actualHours: Math.round(hours), // Keep actual hours for tooltip display
-        color: COLORS[index % COLORS.length],
-      }))
-      .sort((a, b) => (b.actualHours ?? b.hours) - (a.actualHours ?? a.hours))
+      .map(([name, hours], index) => {
+        const roundedHours = Math.round(hours)
+        return {
+          name,
+          // Use minimum display value to ensure users with 0 hours are still visible in the treemap
+          hours: roundedHours === 0 ? MIN_DISPLAY_HOURS : roundedHours,
+          actualHours: roundedHours, // Keep actual hours for tooltip display
+          color: COLORS[index % COLORS.length],
+        }
+      })
+      .sort((a, b) => b.actualHours - a.actualHours)
   }, [data, activeProjects])
 
   const projectColors = useMemo(() => {
