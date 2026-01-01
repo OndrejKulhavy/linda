@@ -81,9 +81,10 @@ function CustomTreemapContent(props: TreemapNodeProps) {
   // More aggressive text display - show on smaller blocks
   const showText = width > 45 && height > 30
   const showOnlyHours = !showText && width > 30 && height > 25
-  const isBelow40 = displayHours < 40 && highlight40Hours
-  const showAlertIcon = isBelow40 && width > 60 && height > 40
-  const showZeroHoursWarning = isZeroHours && width > 40 && height > 35
+  // Users with 0 hours should also be highlighted (treated as below 40)
+  const isBelow40 = (displayHours < 40 || isZeroHours) && highlight40Hours
+  const showAlertIcon = isBelow40 && width > 60 && height > 40 && !isZeroHours
+  const showZeroHoursWarning = isZeroHours && highlight40Hours && width > 60 && height > 40
 
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
@@ -92,36 +93,13 @@ function CustomTreemapContent(props: TreemapNodeProps) {
         y={y}
         width={width}
         height={height}
-        fill={isZeroHours ? "#ef4444" : isBelow40 ? "#6b7280" : color}
+        fill={isBelow40 ? "#6b7280" : color}
         stroke="#fff"
         strokeWidth={2}
         rx={4}
         className="transition-opacity hover:opacity-80"
       />
-      {/* Pattern overlay for zero hours to make them stand out */}
-      {isZeroHours && (
-        <>
-          <defs>
-            <pattern 
-              id={`stripes-${name.replace(/[^a-zA-Z0-9]/g, '-')}-${x}-${y}`} 
-              patternUnits="userSpaceOnUse" 
-              width="8" 
-              height="8" 
-              patternTransform="rotate(45)"
-            >
-              <line x1="0" y1="0" x2="0" y2="8" stroke="#dc2626" strokeWidth="6" opacity="0.3" />
-            </pattern>
-          </defs>
-          <rect
-            x={x}
-            y={y}
-            width={width}
-            height={height}
-            fill={`url(#stripes-${name.replace(/[^a-zA-Z0-9]/g, '-')}-${x}-${y})`}
-            rx={4}
-          />
-        </>
-      )}
+      {/* Warning icon for zero hours users */}
       {showZeroHoursWarning && (
         <g transform={`translate(${x + width / 2 - 10}, ${y + height / 2 - 10})`}>
           <circle cx="10" cy="10" r="10" fill="#fff" opacity="0.95" />
@@ -133,7 +111,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
           />
         </g>
       )}
-      {showAlertIcon && !isZeroHours && (
+      {showAlertIcon && (
         <g transform={`translate(${x + width - 22}, ${y + 6})`}>
           <circle cx="10" cy="10" r="9" fill="#ef4444" opacity="0.9" />
           <path
