@@ -102,7 +102,13 @@ function CustomTreemapContent(props: TreemapNodeProps) {
       {isZeroHours && (
         <>
           <defs>
-            <pattern id={`stripes-${name.replace(/\s/g, '-')}`} patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+            <pattern 
+              id={`stripes-${name.replace(/[^a-zA-Z0-9]/g, '-')}-${x}-${y}`} 
+              patternUnits="userSpaceOnUse" 
+              width="8" 
+              height="8" 
+              patternTransform="rotate(45)"
+            >
               <line x1="0" y1="0" x2="0" y2="8" stroke="#dc2626" strokeWidth="6" opacity="0.3" />
             </pattern>
           </defs>
@@ -111,7 +117,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
             y={y}
             width={width}
             height={height}
-            fill={`url(#stripes-${name.replace(/\s/g, '-')})`}
+            fill={`url(#stripes-${name.replace(/[^a-zA-Z0-9]/g, '-')}-${x}-${y})`}
             rx={4}
           />
         </>
