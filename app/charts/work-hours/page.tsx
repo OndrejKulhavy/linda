@@ -14,67 +14,54 @@ const CZECH_MONTHS = [
   "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"
 ]
 
-interface WeekOption {
+interface MonthOption {
   value: string
   label: string
-  from: string
-  to: string
-  isIncomplete: boolean
+  year: number
+  month: number
 }
 
-function getMonday(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function getSunday(monday: Date): Date {
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  return sunday
-}
-
-function formatDate(date: Date): string {
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  return `${day}.${month}`
-}
-
-function formatDateISO(date: Date): string {
-  return date.toISOString().split("T")[0]
-}
-
-function generateWeekOptions(weeksCount: number = 8): WeekOption[] {
-  const options: WeekOption[] = []
+function generateMonthOptions(monthsCount: number = 12): MonthOption[] {
+  const options: MonthOption[] = []
   const today = new Date()
-  const currentMonday = getMonday(today)
   
-  for (let i = 0; i < weeksCount; i++) {
-    const weekMonday = new Date(currentMonday)
-    weekMonday.setDate(currentMonday.getDate() - (i * 7))
-    
-    const weekSunday = getSunday(weekMonday)
-    const isCurrentWeek = i === 0
-    const actualEndDate = isCurrentWeek && today < weekSunday ? today : weekSunday
-    
-    const monthName = CZECH_MONTHS[weekMonday.getMonth()]
-    const weekNumber = Math.ceil(weekMonday.getDate() / 7)
-    
-    const label = `${monthName} - Týden ${weekNumber} (${formatDate(weekMonday)} - ${formatDate(actualEndDate)})${isCurrentWeek ? ' (probíhá)' : ''}`
+  for (let i = 0; i < monthsCount; i++) {
+    const date = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    const year = date.getFullYear()
+    const month = date.getMonth()
     
     options.push({
-      value: `${formatDateISO(weekMonday)}_${formatDateISO(actualEndDate)}`,
-      label,
-      from: formatDateISO(weekMonday),
-      to: formatDateISO(actualEndDate),
-      isIncomplete: isCurrentWeek
+      value: `${year}-${(month + 1).toString().padStart(2, '0')}`,
+      label: `${CZECH_MONTHS[month]} ${year}`,
+      year,
+      month
     })
   }
   
   return options
+}
+
+function getMonthDateRange(year: number, month: number): { from: string; to: string } {
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  
+  return {
+    from: firstDay.toISOString().split("T")[0],
+    to: lastDay.toISOString().split("T")[0]
+  }
+}
+
+function getDateRangeFromMonths(fromMonth: string, toMonth: string): { from: string; to: string } {
+  const [fromYear, fromMonthStr] = fromMonth.split("-")
+  const [toYear, toMonthStr] = toMonth.split("-")
+  
+  const fromDate = new Date(parseInt(fromYear), parseInt(fromMonthStr) - 1, 1)
+  const toDate = new Date(parseInt(toYear), parseInt(toMonthStr), 0)
+  
+  return {
+    from: fromDate.toISOString().split("T")[0],
+    to: toDate.toISOString().split("T")[0]
+  }
 }
 
 function getWeekNumber(date: Date): string {
@@ -123,12 +110,11 @@ function getWeeksInRange(from: string, to: string): string[] {
 }
 
 export default function WorkHoursPage() {
-  const weekOptions = generateWeekOptions(8)
-  const defaultWeek = weekOptions[0]
+  const monthOptions = generateMonthOptions(12)
+  const currentMonth = monthOptions[0]
   
-  const [selectedWeek, setSelectedWeek] = useState(defaultWeek.value)
-  const [from, setFrom] = useState(defaultWeek.from)
-  const [to, setTo] = useState(defaultWeek.to)
+  const [fromMonth, setFromMonth] = useState(currentMonth.value)
+  const [toMonth, setToMonth] = useState(currentMonth.value)
   const [data, setData] = useState<WorkHoursData[]>([])
   const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -140,14 +126,12 @@ export default function WorkHoursPage() {
   const totalHours = data.reduce((sum, d) => sum + d.hours, 0)
   const totalGoal = data.length * weeklyGoal
 
-  const handleWeekChange = (weekValue: string) => {
-    setSelectedWeek(weekValue)
-    const week = weekOptions.find(w => w.value === weekValue)
-    if (week) {
-      setFrom(week.from)
-      setTo(week.to)
-      handleFetch(week.from, week.to)
-    }
+  const handleMonthChange = (newFromMonth: string, newToMonth: string) => {
+    setFromMonth(newFromMonth)
+    setToMonth(newToMonth)
+    
+    const { from, to } = getDateRangeFromMonths(newFromMonth, newToMonth)
+    handleFetch(from, to)
   }
 
   const handleFetch = useCallback(async (fromDate: string, toDate: string) => {
@@ -193,6 +177,7 @@ export default function WorkHoursPage() {
   }, [weeklyGoalPerUser])
 
   useEffect(() => {
+    const { from, to } = getDateRangeFromMonths(fromMonth, toMonth)
     handleFetch(from, to)
   }, [])
 
@@ -212,16 +197,37 @@ export default function WorkHoursPage() {
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Odpracované hodiny</h1>
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-            <label htmlFor="week-selector" className="text-sm text-muted-foreground whitespace-nowrap">Týden</label>
-            <Select value={selectedWeek} onValueChange={handleWeekChange}>
-              <SelectTrigger id="week-selector" className="flex-1 sm:w-[320px] h-10 sm:h-9">
+          <div className="flex items-center gap-2">
+            <label htmlFor="from-month-selector" className="text-sm text-muted-foreground whitespace-nowrap">Od</label>
+            <Select 
+              value={fromMonth} 
+              onValueChange={(value) => handleMonthChange(value, toMonth)}
+            >
+              <SelectTrigger id="from-month-selector" className="w-full sm:w-[180px] h-10 sm:h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {weekOptions.map((week) => (
-                  <SelectItem key={week.value} value={week.value}>
-                    {week.label}
+                {monthOptions.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="to-month-selector" className="text-sm text-muted-foreground whitespace-nowrap">Do</label>
+            <Select 
+              value={toMonth} 
+              onValueChange={(value) => handleMonthChange(fromMonth, value)}
+            >
+              <SelectTrigger id="to-month-selector" className="w-full sm:w-[180px] h-10 sm:h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -248,7 +254,7 @@ export default function WorkHoursPage() {
               <WorkHoursChart data={data} totalHours={totalHours} totalGoal={totalGoal} />
             ) : (
               <div className="flex items-center justify-center h-[300px] sm:h-[400px] text-muted-foreground text-center px-4">
-                Žádná data pro vybraný týden
+                Žádná data pro vybrané měsíce
               </div>
             )}
           </CardContent>
