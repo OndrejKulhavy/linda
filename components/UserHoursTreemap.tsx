@@ -60,12 +60,13 @@ interface TreemapNodeProps {
   hours: number
   actualHours?: number
   color: string
+  isZeroHours?: boolean
   onUserClick?: (userName: string) => void
   highlight40Hours?: boolean
 }
 
 function CustomTreemapContent(props: TreemapNodeProps) {
-  const { x, y, width, height, name, hours, actualHours, color, onUserClick, highlight40Hours = false } = props
+  const { x, y, width, height, name, hours, actualHours, color, isZeroHours = false, onUserClick, highlight40Hours = false } = props
   
   // Use actualHours for display and logic if available, otherwise use hours
   const displayHours = actualHours !== undefined ? actualHours : hours
@@ -82,6 +83,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
   const showOnlyHours = !showText && width > 30 && height > 25
   const isBelow40 = displayHours < 40 && highlight40Hours
   const showAlertIcon = isBelow40 && width > 60 && height > 40
+  const showZeroHoursWarning = isZeroHours && width > 40 && height > 35
 
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
@@ -90,13 +92,42 @@ function CustomTreemapContent(props: TreemapNodeProps) {
         y={y}
         width={width}
         height={height}
-        fill={isBelow40 ? "#6b7280" : color}
+        fill={isZeroHours ? "#ef4444" : isBelow40 ? "#6b7280" : color}
         stroke="#fff"
         strokeWidth={2}
         rx={4}
         className="transition-opacity hover:opacity-80"
       />
-      {showAlertIcon && (
+      {/* Pattern overlay for zero hours to make them stand out */}
+      {isZeroHours && (
+        <>
+          <defs>
+            <pattern id={`stripes-${name.replace(/\s/g, '-')}`} patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#dc2626" strokeWidth="6" opacity="0.3" />
+            </pattern>
+          </defs>
+          <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            fill={`url(#stripes-${name.replace(/\s/g, '-')})`}
+            rx={4}
+          />
+        </>
+      )}
+      {showZeroHoursWarning && (
+        <g transform={`translate(${x + width / 2 - 10}, ${y + height / 2 - 10})`}>
+          <circle cx="10" cy="10" r="10" fill="#fff" opacity="0.95" />
+          <path
+            d="M10 6 L10 11 M10 13 L10 14"
+            stroke="#ef4444"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </g>
+      )}
+      {showAlertIcon && !isZeroHours && (
         <g transform={`translate(${x + width - 22}, ${y + 6})`}>
           <circle cx="10" cy="10" r="9" fill="#ef4444" opacity="0.9" />
           <path
@@ -226,11 +257,13 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
     return Array.from(userHours.entries())
       .map(([name, hours], index) => {
         const roundedHours = Math.round(hours)
+        const isZero = roundedHours === 0
         return {
           name,
           // Use minimum display value to ensure users with 0 hours are still visible in the treemap
-          hours: roundedHours === 0 ? MIN_DISPLAY_HOURS : roundedHours,
+          hours: isZero ? MIN_DISPLAY_HOURS : roundedHours,
           actualHours: roundedHours, // Keep actual hours for tooltip display
+          isZeroHours: isZero, // Flag to identify users with 0 hours for special styling
           color: COLORS[index % COLORS.length],
         }
       })
@@ -446,14 +479,18 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
                     const item = payload[0].payload
                     const displayHours = item.actualHours !== undefined ? item.actualHours : item.hours
                     const isBelow40 = displayHours < 40 && highlight40Hours
+                    const isZeroHours = item.isZeroHours || displayHours === 0
                     return (
                       <div className="bg-popover border rounded-lg p-3 shadow-lg">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold">{item.name}</p>
-                          {isBelow40 && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                          {(isBelow40 || isZeroHours) && <AlertTriangle className="w-4 h-4 text-red-500" />}
                         </div>
                         <p className="text-muted-foreground">{displayHours} hodin</p>
-                        {isBelow40 && (
+                        {isZeroHours && (
+                          <p className="text-xs text-red-500 mt-1 font-semibold">⚠️ Žádné odpracované hodiny</p>
+                        )}
+                        {isBelow40 && !isZeroHours && (
                           <p className="text-xs text-red-500 mt-1">Nedosaženo 40 hodin</p>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">Klikni pro detail</p>
