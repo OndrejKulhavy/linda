@@ -3,36 +3,78 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { WorkHoursChart, type WorkHoursData } from "@/components/WorkHoursChart"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft } from "lucide-react"
 
-function getLastWeekRange() {
-  const today = new Date()
-  const lastWeek = new Date(today)
-  lastWeek.setDate(today.getDate() - 7)
-  return {
-    from: lastWeek.toISOString().split("T")[0],
-    to: today.toISOString().split("T")[0],
-  }
+const CZECH_MONTHS = [
+  "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
+  "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"
+]
+
+interface WeekOption {
+  value: string
+  label: string
+  from: string
+  to: string
+  isIncomplete: boolean
 }
 
-function getWorkingDaysInRange(from: string, to: string): string[] {
-  const days: string[] = []
-  const current = new Date(from)
-  const end = new Date(to)
+function getMonday(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function getSunday(monday: Date): Date {
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  return sunday
+}
+
+function formatDate(date: Date): string {
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  return `${day}.${month}`
+}
+
+function formatDateISO(date: Date): string {
+  return date.toISOString().split("T")[0]
+}
+
+function generateWeekOptions(weeksCount: number = 8): WeekOption[] {
+  const options: WeekOption[] = []
+  const today = new Date()
+  const currentMonday = getMonday(today)
   
-  while (current <= end) {
-    const dayOfWeek = current.getDay()
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      days.push(current.toISOString().split("T")[0])
-    }
-    current.setDate(current.getDate() + 1)
+  for (let i = 0; i < weeksCount; i++) {
+    const weekMonday = new Date(currentMonday)
+    weekMonday.setDate(currentMonday.getDate() - (i * 7))
+    
+    const weekSunday = getSunday(weekMonday)
+    const isCurrentWeek = i === 0
+    const actualEndDate = isCurrentWeek && today < weekSunday ? today : weekSunday
+    
+    const monthName = CZECH_MONTHS[weekMonday.getMonth()]
+    const weekNumber = Math.ceil(weekMonday.getDate() / 7)
+    
+    const label = `${monthName} - Týden ${weekNumber} (${formatDate(weekMonday)} - ${formatDate(actualEndDate)})${isCurrentWeek ? ' (probíhá)' : ''}`
+    
+    options.push({
+      value: `${formatDateISO(weekMonday)}_${formatDateISO(actualEndDate)}`,
+      label,
+      from: formatDateISO(weekMonday),
+      to: formatDateISO(actualEndDate),
+      isIncomplete: isCurrentWeek
+    })
   }
   
-  return days
+  return options
 }
 
 function getWeekNumber(date: Date): string {
@@ -81,9 +123,12 @@ function getWeeksInRange(from: string, to: string): string[] {
 }
 
 export default function WorkHoursPage() {
-  const defaultRange = getLastWeekRange()
-  const [from, setFrom] = useState(defaultRange.from)
-  const [to, setTo] = useState(defaultRange.to)
+  const weekOptions = generateWeekOptions(8)
+  const defaultWeek = weekOptions[0]
+  
+  const [selectedWeek, setSelectedWeek] = useState(defaultWeek.value)
+  const [from, setFrom] = useState(defaultWeek.from)
+  const [to, setTo] = useState(defaultWeek.to)
   const [data, setData] = useState<WorkHoursData[]>([])
   const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -94,6 +139,16 @@ export default function WorkHoursPage() {
 
   const totalHours = data.reduce((sum, d) => sum + d.hours, 0)
   const totalGoal = data.length * weeklyGoal
+
+  const handleWeekChange = (weekValue: string) => {
+    setSelectedWeek(weekValue)
+    const week = weekOptions.find(w => w.value === weekValue)
+    if (week) {
+      setFrom(week.from)
+      setTo(week.to)
+      handleFetch(week.from, week.to)
+    }
+  }
 
   const handleFetch = useCallback(async (fromDate: string, toDate: string) => {
     if (!fromDate || !toDate) {
@@ -157,30 +212,22 @@ export default function WorkHoursPage() {
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Odpracované hodiny</h1>
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4 sm:mb-6">
-          <div className="flex items-center gap-2">
-            <label htmlFor="from" className="text-sm text-muted-foreground min-w-[28px]">Od</label>
-            <Input
-              id="from"
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="flex-1 sm:w-[140px] h-10 sm:h-9"
-            />
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+            <label htmlFor="week-selector" className="text-sm text-muted-foreground whitespace-nowrap">Týden</label>
+            <Select value={selectedWeek} onValueChange={handleWeekChange}>
+              <SelectTrigger id="week-selector" className="flex-1 sm:w-[320px] h-10 sm:h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {weekOptions.map((week) => (
+                  <SelectItem key={week.value} value={week.value}>
+                    {week.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="to" className="text-sm text-muted-foreground min-w-[28px]">Do</label>
-            <Input
-              id="to"
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="flex-1 sm:w-[140px] h-10 sm:h-9"
-            />
-          </div>
-          <Button onClick={() => handleFetch(from, to)} disabled={loading} size="sm" className="w-full sm:w-auto h-10 sm:h-9">
-            {loading ? "Načítám..." : "Načíst"}
-          </Button>
-          {error && <span className="text-sm text-red-500">{error}</span>}
+          {error && <span className="text-sm text-red-500 w-full sm:w-auto">{error}</span>}
           {userCount > 0 && (
             <span className="text-sm text-muted-foreground w-full sm:w-auto sm:ml-auto text-center sm:text-right">
               {userCount} uživatelů · cíl {weeklyGoal}h/týden
@@ -193,11 +240,15 @@ export default function WorkHoursPage() {
             <CardTitle className="text-lg sm:text-xl">Graf odpracovaných hodin</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-            {data.length > 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center h-[300px] sm:h-[400px] text-muted-foreground">
+                Načítám data...
+              </div>
+            ) : data.length > 0 ? (
               <WorkHoursChart data={data} totalHours={totalHours} totalGoal={totalGoal} />
             ) : (
               <div className="flex items-center justify-center h-[300px] sm:h-[400px] text-muted-foreground text-center px-4">
-                Vyber časové období a klikni na &quot;Načíst data&quot;
+                Žádná data pro vybraný týden
               </div>
             )}
           </CardContent>
