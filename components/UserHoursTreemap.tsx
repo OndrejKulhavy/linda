@@ -48,6 +48,9 @@ const COLORS = [
   "#84cc16", "#14b8a6", "#6366f1", "#d946ef", "#0ea5e9"
 ]
 
+// Minimum hours value for treemap display to ensure users with 0 hours are visible
+const MIN_DISPLAY_HOURS = 0.5
+
 interface TreemapNodeProps {
   x: number
   y: number
@@ -223,13 +226,12 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
     return Array.from(userHours.entries())
       .map(([name, hours], index) => ({
         name,
-        // Use minimum value of 0.5 for display purposes if hours is 0
-        // This ensures users with 0 hours are still visible in the treemap
-        hours: hours === 0 ? 0.5 : Math.round(hours),
+        // Use minimum display value to ensure users with 0 hours are still visible in the treemap
+        hours: hours === 0 ? MIN_DISPLAY_HOURS : Math.round(hours),
         actualHours: Math.round(hours), // Keep actual hours for tooltip display
         color: COLORS[index % COLORS.length],
       }))
-      .sort((a, b) => b.actualHours - a.actualHours)
+      .sort((a, b) => (b.actualHours ?? b.hours) - (a.actualHours ?? a.hours))
   }, [data, activeProjects])
 
   const projectColors = useMemo(() => {
