@@ -41,16 +41,6 @@ function generateMonthOptions(monthsCount: number = 12): MonthOption[] {
   return options
 }
 
-function getMonthDateRange(year: number, month: number): { from: string; to: string } {
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  
-  return {
-    from: firstDay.toISOString().split("T")[0],
-    to: lastDay.toISOString().split("T")[0]
-  }
-}
-
 function getDateRangeFromMonths(fromMonth: string, toMonth: string): { from: string; to: string } {
   const [fromYear, fromMonthStr] = fromMonth.split("-")
   const [toYear, toMonthStr] = toMonth.split("-")
