@@ -22,6 +22,7 @@ import {
   Cell,
   Legend,
 } from "recharts"
+import { getWeekNumber, getLastNWeeksRange, calculateConsistency } from "@/utils/analytics"
 
 interface WeeklyData {
   week: string
@@ -47,25 +48,6 @@ const COLORS = {
 }
 
 const PIE_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899"]
-
-function getLastNWeeksRange(weeks: number = 4) {
-  const today = new Date()
-  const startDate = new Date(today)
-  startDate.setDate(today.getDate() - (weeks * 7))
-  return {
-    from: startDate.toISOString().split("T")[0],
-    to: today.toISOString().split("T")[0],
-  }
-}
-
-function getWeekNumber(date: Date): string {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7))
-  const yearStart = new Date(d.getFullYear(), 0, 1)
-  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-  return `W${weekNo}`
-}
 
 export default function PerformancePage() {
   const [selectedUser, setSelectedUser] = useState<string>("")
@@ -105,7 +87,7 @@ export default function PerformancePage() {
     const range = getLastNWeeksRange(weeksToShow)
 
     try {
-      const response = await fetch(`/api/clockify/users/details?from=${range.from}&to=${range.to}`)
+      const response = await fetch(`/api/clockify/all-users?from=${range.from}&to=${range.to}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -174,7 +156,7 @@ export default function PerformancePage() {
 
       const avgHours = weeklyData.length > 0 ? totalHours / weeklyData.length : 0
       const consistency = weeklyData.length > 0
-        ? 100 - (Math.abs(40 - avgHours) / 40) * 100
+        ? calculateConsistency(avgHours)
         : 0
 
       // Calculate team average

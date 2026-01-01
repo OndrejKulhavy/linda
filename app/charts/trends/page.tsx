@@ -20,6 +20,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
+import { getWeekNumber, getLastNWeeksRange } from "@/utils/analytics"
 
 interface WeeklyTeamData {
   week: string
@@ -32,25 +33,6 @@ interface WeeklyTeamData {
 interface ProjectTrend {
   week: string
   [key: string]: number | string
-}
-
-function getLastNWeeksRange(weeks: number = 8) {
-  const today = new Date()
-  const startDate = new Date(today)
-  startDate.setDate(today.getDate() - (weeks * 7))
-  return {
-    from: startDate.toISOString().split("T")[0],
-    to: today.toISOString().split("T")[0],
-  }
-}
-
-function getWeekNumber(date: Date): string {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7))
-  const yearStart = new Date(d.getFullYear(), 0, 1)
-  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-  return `W${weekNo}`
 }
 
 export default function TrendsPage() {
@@ -66,7 +48,7 @@ export default function TrendsPage() {
     const range = getLastNWeeksRange(8)
 
     try {
-      const response = await fetch(`/api/clockify/users/details?from=${range.from}&to=${range.to}`)
+      const response = await fetch(`/api/clockify/all-users?from=${range.from}&to=${range.to}`)
       const result = await response.json()
 
       if (!response.ok) {

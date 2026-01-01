@@ -5,9 +5,10 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { ArrowLeft, Trophy, Medal, Award, Star, TrendingUp, TrendingDown } from "lucide-react"
+import { ArrowLeft, Trophy, Medal, Award, Star } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getWeekNumber, getLastNWeeksRange, calculateConsistency } from "@/utils/analytics"
 
 interface UserStats {
   name: string
@@ -21,25 +22,6 @@ interface UserStats {
   trainingHours: number
   rank: number
   weekChange: number
-}
-
-function getLastNWeeksRange(weeks: number = 4) {
-  const today = new Date()
-  const startDate = new Date(today)
-  startDate.setDate(today.getDate() - (weeks * 7))
-  return {
-    from: startDate.toISOString().split("T")[0],
-    to: today.toISOString().split("T")[0],
-  }
-}
-
-function getWeekNumber(date: Date): string {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7))
-  const yearStart = new Date(d.getFullYear(), 0, 1)
-  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-  return `W${weekNo}`
 }
 
 export default function LeaderboardPage() {
@@ -56,7 +38,7 @@ export default function LeaderboardPage() {
     const range = getLastNWeeksRange(weeksToShow)
 
     try {
-      const response = await fetch(`/api/clockify/users/details?from=${range.from}&to=${range.to}`)
+      const response = await fetch(`/api/clockify/all-users?from=${range.from}&to=${range.to}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -102,7 +84,7 @@ export default function LeaderboardPage() {
         const avgHours = totalHours / weeksActive
         
         // Calculate consistency (how close to 40h avg)
-        const consistency = Math.max(0, 100 - (Math.abs(40 - avgHours) / 40) * 100)
+        const consistency = calculateConsistency(avgHours)
         
         const projectData = userProjectMap.get(userName)!
         
