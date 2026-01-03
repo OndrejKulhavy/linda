@@ -188,12 +188,12 @@ export default function SessionCalendar({
                           title={`${session.title} - ${formatTime(session.start_time)}`}
                         >
                           {getSessionTypeAbbreviation(session.type)}
-                          {stats.total > 0 && issueCount > 0 && (
+                          {!isFuture && stats.total > 0 && issueCount > 0 && (
                             <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center text-[8px]">
                               {issueCount}
                             </span>
                           )}
-                          {stats.total > 0 && issueCount === 0 && (
+                          {!isFuture && stats.total > 0 && issueCount === 0 && (
                             <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
                               <Check className="w-2 h-2" />
                             </span>
@@ -228,7 +228,7 @@ export default function SessionCalendar({
                             {formatTime(session.start_time)}
                           </div>
                           <div className="truncate">{session.title}</div>
-                          {stats.total > 0 && (
+                          {!isFuture && stats.total > 0 && (
                             <div className="flex items-center gap-1 mt-0.5">
                               <span className="inline-flex items-center gap-0.5 bg-white/20 rounded px-1 text-[10px]">
                                 <Check className="w-2.5 h-2.5" />
