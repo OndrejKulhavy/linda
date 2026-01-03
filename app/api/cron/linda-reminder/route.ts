@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
         })
 
         // Wait 500ms between emails to respect Resend's rate limit (2 requests/second)
-        await sleep(500)
+        await sleep(700)
 
         results.push({
           user: user.name,
