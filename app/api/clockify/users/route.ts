@@ -106,6 +106,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Ensure all users are present in the data, even with 0 hours
+    const usersWithData = new Set(
+      Array.from(aggregated.values()).map((item) => item.name)
+    )
+    
+    for (const user of users) {
+      if (!usersWithData.has(user.name)) {
+        // Add user with 0 hours in "No Project" to ensure visibility
+        aggregated.set(`${user.name}:No Project`, {
+          name: user.name,
+          project: "No Project",
+          hours: 0,
+        })
+      }
+    }
+
     const data = Array.from(aggregated.values()).map((item) => ({
       name: item.name,
       project: item.project,

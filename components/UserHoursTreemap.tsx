@@ -48,6 +48,9 @@ const COLORS = [
   "#84cc16", "#14b8a6", "#6366f1", "#d946ef", "#0ea5e9"
 ]
 
+// Minimum hours value for treemap display to ensure users with 0 hours are visible
+const MIN_DISPLAY_HOURS = 0.5
+
 interface TreemapNodeProps {
   x: number
   y: number
@@ -55,13 +58,18 @@ interface TreemapNodeProps {
   height: number
   name: string
   hours: number
+  actualHours?: number
   color: string
+  isZeroHours?: boolean
   onUserClick?: (userName: string) => void
   highlight40Hours?: boolean
 }
 
 function CustomTreemapContent(props: TreemapNodeProps) {
-  const { x, y, width, height, name, hours, color, onUserClick, highlight40Hours = false } = props
+  const { x, y, width, height, name, hours, actualHours, color, isZeroHours = false, onUserClick, highlight40Hours = false } = props
+  
+  // Use actualHours for display and logic if available, otherwise use hours
+  const displayHours = actualHours !== undefined ? actualHours : hours
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -73,8 +81,11 @@ function CustomTreemapContent(props: TreemapNodeProps) {
   // More aggressive text display - show on smaller blocks
   const showText = width > 45 && height > 30
   const showOnlyHours = !showText && width > 30 && height > 25
-  const isBelow40 = hours < 40 && highlight40Hours
-  const showAlertIcon = isBelow40 && width > 60 && height > 40
+  // Users with 0 hours should always be grayed out
+  const isBelow40 = (displayHours < 40 && highlight40Hours)
+  const shouldBeGray = isBelow40 || isZeroHours
+  const showAlertIcon = isBelow40 && width > 60 && height > 40 && !isZeroHours
+  const showZeroHoursWarning = isZeroHours && width > 60 && height > 40
 
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
@@ -83,12 +94,24 @@ function CustomTreemapContent(props: TreemapNodeProps) {
         y={y}
         width={width}
         height={height}
-        fill={isBelow40 ? "#6b7280" : color}
+        fill={shouldBeGray ? "#6b7280" : color}
         stroke="#fff"
         strokeWidth={2}
         rx={4}
         className="transition-opacity hover:opacity-80"
       />
+      {/* Warning icon for zero hours users */}
+      {showZeroHoursWarning && (
+        <g transform={`translate(${x + width / 2 - 10}, ${y + height / 2 - 10})`}>
+          <circle cx="10" cy="10" r="10" fill="#fff" opacity="0.95" />
+          <path
+            d="M10 6 L10 11 M10 13 L10 14"
+            stroke="#ef4444"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </g>
+      )}
       {showAlertIcon && (
         <g transform={`translate(${x + width - 22}, ${y + 6})`}>
           <circle cx="10" cy="10" r="9" fill="#ef4444" opacity="0.9" />
@@ -120,7 +143,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
             fontWeight="bold"
             style={{ pointerEvents: "none" }}
           >
-            {hours}
+            {displayHours}
           </text>
         </>
       )}
@@ -134,7 +157,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
           textAnchor="middle"
           style={{ pointerEvents: "none" }}
         >
-          {hours}
+          {displayHours}
         </text>
       )}
     </g>
@@ -198,20 +221,38 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
 
   const filteredData = useMemo(() => {
     const userHours = new Map<string, number>()
+    
+    // First, collect all unique users from the data
+    const allUsers = new Set(data.map((entry) => entry.name))
 
+    // Calculate hours for each user based on active projects
     for (const entry of data) {
       if (activeProjects.has(entry.project)) {
         userHours.set(entry.name, (userHours.get(entry.name) || 0) + entry.hours)
       }
     }
 
+    // Ensure all users are included, even with 0 hours
+    for (const userName of allUsers) {
+      if (!userHours.has(userName)) {
+        userHours.set(userName, 0)
+      }
+    }
+
     return Array.from(userHours.entries())
-      .map(([name, hours], index) => ({
-        name,
-        hours: Math.round(hours),
-        color: COLORS[index % COLORS.length],
-      }))
-      .sort((a, b) => b.hours - a.hours)
+      .map(([name, hours], index) => {
+        const roundedHours = Math.round(hours)
+        const isZero = roundedHours === 0
+        return {
+          name,
+          // Use minimum display value to ensure users with 0 hours are still visible in the treemap
+          hours: isZero ? MIN_DISPLAY_HOURS : roundedHours,
+          actualHours: roundedHours, // Keep actual hours for tooltip display
+          isZeroHours: isZero, // Flag to identify users with 0 hours for special styling
+          color: COLORS[index % COLORS.length],
+        }
+      })
+      .sort((a, b) => b.actualHours - a.actualHours)
   }, [data, activeProjects])
 
   const projectColors = useMemo(() => {
@@ -421,15 +462,20 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
                 content={({ payload }) => {
                   if (payload && payload.length > 0) {
                     const item = payload[0].payload
-                    const isBelow40 = item.hours < 40 && highlight40Hours
+                    const displayHours = item.actualHours !== undefined ? item.actualHours : item.hours
+                    const isBelow40 = displayHours < 40 && highlight40Hours
+                    const isZeroHours = item.isZeroHours || displayHours === 0
                     return (
                       <div className="bg-popover border rounded-lg p-3 shadow-lg">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold">{item.name}</p>
-                          {isBelow40 && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                          {(isBelow40 || isZeroHours) && <AlertTriangle className="w-4 h-4 text-red-500" />}
                         </div>
-                        <p className="text-muted-foreground">{item.hours} hodin</p>
-                        {isBelow40 && (
+                        <p className="text-muted-foreground">{displayHours} hodin</p>
+                        {isZeroHours && (
+                          <p className="text-xs text-red-500 mt-1 font-semibold">⚠️ Žádné odpracované hodiny</p>
+                        )}
+                        {isBelow40 && !isZeroHours && (
                           <p className="text-xs text-red-500 mt-1">Nedosaženo 40 hodin</p>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">Klikni pro detail</p>
