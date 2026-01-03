@@ -58,6 +58,11 @@ function getFirstName(fullName: string): string {
   return fullName.split(" ")[0]
 }
 
+// Helper function to add delay between requests to respect rate limits
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export async function GET(request: NextRequest) {
   // Verify cron secret for security
   const authHeader = request.headers.get("authorization")
@@ -182,6 +187,9 @@ export async function GET(request: NextRequest) {
           subject,
           html,
         })
+
+        // Wait 500ms between emails to respect Resend's rate limit (2 requests/second)
+        await sleep(700)
 
         results.push({
           user: user.name,
