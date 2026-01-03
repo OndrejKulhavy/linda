@@ -22,6 +22,7 @@ import {
   formatTime,
   calculateSessionStats,
   getIssueRecords,
+  isSessionInFuture,
 } from '@/utils/attendance-helpers'
 import { cn } from '@/lib/utils'
 
@@ -60,13 +61,7 @@ export default function AttendanceSummary({
   const [lateExpanded, setLateExpanded] = useState(false)
 
   // Check if session is in the future
-  const isSessionInFuture = useMemo(() => {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const sessionDate = new Date(session.date)
-    const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
-    return sessionDay > today
-  }, [session.date])
+  const isFuture = useMemo(() => isSessionInFuture(session.date), [session.date])
 
   // Separate absences from late arrivals
   const absences = useMemo(() => issues.filter(r => r.status !== 'present'), [issues])
@@ -91,7 +86,7 @@ export default function AttendanceSummary({
       </div>
 
       {/* Stats Overview - only show for past/present events */}
-      {!isSessionInFuture && (
+      {!isFuture && (
         <div className="grid grid-cols-4 gap-2 p-3 sm:p-4 border-b bg-muted/30">
           <div className="text-center">
             <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
@@ -122,7 +117,7 @@ export default function AttendanceSummary({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4">
-        {isSessionInFuture ? (
+        {isFuture ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Calendar className="w-12 h-12 text-muted-foreground/50 mb-3" />
             <h3 className="text-lg font-semibold text-muted-foreground mb-1">

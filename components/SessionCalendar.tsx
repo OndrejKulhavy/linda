@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import type { SessionWithAttendance, SessionAttendanceStats } from '@/types/session'
-import { getSessionTypeColor, formatTime, getSessionTypeAbbreviation, calculateSessionStats } from '@/utils/attendance-helpers'
+import { getSessionTypeColor, formatTime, getSessionTypeAbbreviation, calculateSessionStats, isSessionInFuture } from '@/utils/attendance-helpers'
 import { cn } from '@/lib/utils'
 
 interface SessionCalendarProps {
@@ -106,14 +106,6 @@ export default function SessionCalendar({
     )
   }
 
-  const isSessionInFuture = (session: SessionWithAttendance) => {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const sessionDate = new Date(session.date)
-    const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
-    return sessionDay > today
-  }
-
   return (
     <Card>
       <CardHeader className="pb-2 px-3 sm:px-6">
@@ -171,7 +163,7 @@ export default function SessionCalendar({
                       const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
                       const issueCount = stats.late + stats.absentUnplanned
-                      const isFuture = isSessionInFuture(session)
+                      const isFuture = isSessionInFuture(session.date)
                       
                       return (
                         <button
@@ -209,7 +201,7 @@ export default function SessionCalendar({
                       const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
                       const issueCount = stats.late + stats.absentUnplanned
-                      const isFuture = isSessionInFuture(session)
+                      const isFuture = isSessionInFuture(session.date)
                       
                       return (
                         <button

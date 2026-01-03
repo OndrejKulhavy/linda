@@ -2,6 +2,17 @@ import type { LateType, SessionType, SessionWithAttendance, SessionAttendanceSta
 import { TEAM_MEMBERS } from '@/lib/team-members'
 
 /**
+ * Check if a session is in the future (hasn't occurred yet)
+ */
+export function isSessionInFuture(sessionDate: string): boolean {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const session = new Date(sessionDate)
+  const sessionDay = new Date(session.getFullYear(), session.getMonth(), session.getDate())
+  return sessionDay > today
+}
+
+/**
  * Determines the late type based on current time and session start time.
  * If within first 15 minutes of session start, it's 'start'.
  * Otherwise, it's 'after_break'.
