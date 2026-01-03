@@ -108,9 +108,8 @@ export default function SessionCalendar({
 
   const isSessionInFuture = (session: SessionWithAttendance) => {
     const now = new Date()
-    const sessionDate = new Date(session.date)
-    // Compare just the date parts (ignore time)
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const sessionDate = new Date(session.date)
     const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
     return sessionDay > today
   }
@@ -183,8 +182,8 @@ export default function SessionCalendar({
                             getSessionTypeColor(session.type),
                             'text-white hover:opacity-90',
                             isSelected && 'ring-2 ring-offset-1 ring-primary',
-                            session.google_deleted && 'opacity-50',
-                            isFuture && 'opacity-40'
+                            // Deleted events take precedence over future events
+                            session.google_deleted ? 'opacity-50' : isFuture && 'opacity-40'
                           )}
                           title={`${session.title} - ${formatTime(session.start_time)}`}
                         >
@@ -221,8 +220,8 @@ export default function SessionCalendar({
                             getSessionTypeColor(session.type),
                             'text-white hover:opacity-90',
                             isSelected && 'ring-2 ring-offset-1 ring-primary',
-                            session.google_deleted && 'opacity-50 line-through',
-                            isFuture && 'opacity-40'
+                            // Deleted events take precedence over future events
+                            session.google_deleted ? 'opacity-50 line-through' : isFuture && 'opacity-40'
                           )}
                         >
                           <div className="font-medium truncate">
