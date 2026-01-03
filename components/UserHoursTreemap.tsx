@@ -81,10 +81,11 @@ function CustomTreemapContent(props: TreemapNodeProps) {
   // More aggressive text display - show on smaller blocks
   const showText = width > 45 && height > 30
   const showOnlyHours = !showText && width > 30 && height > 25
-  // Users with 0 hours should also be highlighted (treated as below 40)
-  const isBelow40 = (displayHours < 40 || isZeroHours) && highlight40Hours
+  // Users with 0 hours should always be grayed out
+  const isBelow40 = (displayHours < 40 && highlight40Hours)
+  const shouldBeGray = isBelow40 || isZeroHours
   const showAlertIcon = isBelow40 && width > 60 && height > 40 && !isZeroHours
-  const showZeroHoursWarning = isZeroHours && highlight40Hours && width > 60 && height > 40
+  const showZeroHoursWarning = isZeroHours && width > 60 && height > 40
 
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
@@ -93,7 +94,7 @@ function CustomTreemapContent(props: TreemapNodeProps) {
         y={y}
         width={width}
         height={height}
-        fill={isBelow40 ? "#6b7280" : color}
+        fill={shouldBeGray ? "#6b7280" : color}
         stroke="#fff"
         strokeWidth={2}
         rx={4}
