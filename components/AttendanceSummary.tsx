@@ -271,11 +271,11 @@ export default function AttendanceSummary({
             )}
 
             {/* Present count at bottom */}
-            {stats.present > 0 && (
+            {stats.present - stats.late > 0 && (
               <div className="pt-3 mt-3 border-t">
                 <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                   <Check className="w-4 h-4" />
-                  <span>{stats.present} členů přítomno včas</span>
+                  <span>{stats.present - stats.late} členů přítomno včas</span>
                 </div>
               </div>
             )}

@@ -40,8 +40,7 @@ export function calculateSessionStats(session: SessionWithAttendance): SessionAt
   const total = TEAM_MEMBERS.length
   const records = session.attendance_records || []
   
-  let present = 0
-  let late = 0
+  let late = 0 // Number of people who were late
   let lateStart = 0
   let lateAfterBreak = 0
   let absentPlanned = 0
@@ -50,15 +49,15 @@ export function calculateSessionStats(session: SessionWithAttendance): SessionAt
   records.forEach(record => {
     switch (record.status) {
       case 'present':
-        present++
-        // Check new late fields
-        if (record.late_start) {
+        // Count people who were late (present but with late flags)
+        if (record.late_start || record.late_break_count > 0) {
           late++
-          lateStart++
-        }
-        if (record.late_break_count > 0) {
-          late += record.late_break_count
-          lateAfterBreak += record.late_break_count
+          if (record.late_start) {
+            lateStart++
+          }
+          if (record.late_break_count > 0) {
+            lateAfterBreak += record.late_break_count
+          }
         }
         break
       case 'absent_planned':
@@ -69,6 +68,11 @@ export function calculateSessionStats(session: SessionWithAttendance): SessionAt
         break
     }
   })
+  
+  // Present = everyone who is not absent (includes late arrivals)
+  // By default, everyone is present unless they have an absence record
+  const totalAbsent = absentPlanned + absentUnplanned
+  const present = total - totalAbsent
   
   const notRecorded = total - records.length
   
