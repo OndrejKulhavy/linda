@@ -22,6 +22,7 @@ import {
   formatTime,
   calculateSessionStats,
   getIssueRecords,
+  isSessionInFuture,
 } from '@/utils/attendance-helpers'
 import { cn } from '@/lib/utils'
 
@@ -59,6 +60,9 @@ export default function AttendanceSummary({
   const issues = useMemo(() => getIssueRecords(session.attendance_records || []), [session])
   const [lateExpanded, setLateExpanded] = useState(false)
 
+  // Check if session is in the future
+  const isFuture = useMemo(() => isSessionInFuture(session.date), [session.date])
+
   // Separate absences from late arrivals
   const absences = useMemo(() => issues.filter(r => r.status !== 'present'), [issues])
   const lateArrivals = useMemo(() => issues.filter(r => r.status === 'present'), [issues])
@@ -81,37 +85,49 @@ export default function AttendanceSummary({
         </Button>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-4 gap-2 p-3 sm:p-4 border-b bg-muted/30">
-        <div className="text-center">
-          <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
-            {stats.present}
+      {/* Stats Overview - only show for past/present events */}
+      {!isFuture && (
+        <div className="grid grid-cols-4 gap-2 p-3 sm:p-4 border-b bg-muted/30">
+          <div className="text-center">
+            <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
+              {stats.present}
+            </div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Přítomni</div>
           </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground">Přítomni</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-400">
-            {stats.late}
+          <div className="text-center">
+            <div className="text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {stats.late}
+            </div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Pozdě</div>
           </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground">Pozdě</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {stats.absentPlanned}
+          <div className="text-center">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {stats.absentPlanned}
+            </div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Omluveno</div>
           </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground">Omluveno</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
-            {stats.absentUnplanned}
+          <div className="text-center">
+            <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
+              {stats.absentUnplanned}
+            </div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Neomluv.</div>
           </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground">Neomluv.</div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4">
-        {hasNoRecords ? (
+        {isFuture ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-8">
+            <Calendar className="w-12 h-12 text-muted-foreground/50 mb-3" />
+            <h3 className="text-lg font-semibold text-muted-foreground mb-1">
+              Nadcházející schůzka
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Docházka bude zaznamenána po konání schůzky.
+            </p>
+          </div>
+        ) : hasNoRecords ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <User className="w-12 h-12 text-muted-foreground/50 mb-3" />
             <p className="text-muted-foreground">
@@ -271,11 +287,11 @@ export default function AttendanceSummary({
             )}
 
             {/* Present count at bottom */}
-            {stats.present > 0 && (
+            {stats.present - stats.late > 0 && (
               <div className="pt-3 mt-3 border-t">
                 <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                   <Check className="w-4 h-4" />
-                  <span>{stats.present} členů přítomno včas</span>
+                  <span>{stats.present - stats.late} členů přítomno včas</span>
                 </div>
               </div>
             )}

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import type { SessionWithAttendance, SessionAttendanceStats } from '@/types/session'
-import { getSessionTypeColor, formatTime, getSessionTypeAbbreviation, calculateSessionStats } from '@/utils/attendance-helpers'
+import { getSessionTypeColor, formatTime, getSessionTypeAbbreviation, calculateSessionStats, isSessionInFuture } from '@/utils/attendance-helpers'
 import { cn } from '@/lib/utils'
 
 interface SessionCalendarProps {
@@ -163,6 +163,7 @@ export default function SessionCalendar({
                       const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
                       const issueCount = stats.late + stats.absentUnplanned
+                      const isFuture = isSessionInFuture(session.date)
                       
                       return (
                         <button
@@ -173,17 +174,18 @@ export default function SessionCalendar({
                             getSessionTypeColor(session.type),
                             'text-white hover:opacity-90',
                             isSelected && 'ring-2 ring-offset-1 ring-primary',
-                            session.google_deleted && 'opacity-50'
+                            // Deleted events take precedence over future events
+                            session.google_deleted ? 'opacity-50' : isFuture && 'opacity-40'
                           )}
                           title={`${session.title} - ${formatTime(session.start_time)}`}
                         >
                           {getSessionTypeAbbreviation(session.type)}
-                          {stats.total > 0 && issueCount > 0 && (
+                          {!isFuture && stats.total > 0 && issueCount > 0 && (
                             <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center text-[8px]">
                               {issueCount}
                             </span>
                           )}
-                          {stats.total > 0 && issueCount === 0 && (
+                          {!isFuture && stats.total > 0 && issueCount === 0 && (
                             <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
                               <Check className="w-2 h-2" />
                             </span>
@@ -199,6 +201,7 @@ export default function SessionCalendar({
                       const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
                       const issueCount = stats.late + stats.absentUnplanned
+                      const isFuture = isSessionInFuture(session.date)
                       
                       return (
                         <button
@@ -209,14 +212,15 @@ export default function SessionCalendar({
                             getSessionTypeColor(session.type),
                             'text-white hover:opacity-90',
                             isSelected && 'ring-2 ring-offset-1 ring-primary',
-                            session.google_deleted && 'opacity-50 line-through'
+                            // Deleted events take precedence over future events
+                            session.google_deleted ? 'opacity-50 line-through' : isFuture && 'opacity-40'
                           )}
                         >
                           <div className="font-medium truncate">
                             {formatTime(session.start_time)}
                           </div>
                           <div className="truncate">{session.title}</div>
-                          {stats.total > 0 && (
+                          {!isFuture && stats.total > 0 && (
                             <div className="flex items-center gap-1 mt-0.5">
                               <span className="inline-flex items-center gap-0.5 bg-white/20 rounded px-1 text-[10px]">
                                 <Check className="w-2.5 h-2.5" />

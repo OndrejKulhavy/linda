@@ -2,6 +2,17 @@ import type { LateType, SessionType, SessionWithAttendance, SessionAttendanceSta
 import { TEAM_MEMBERS } from '@/lib/team-members'
 
 /**
+ * Check if a session is in the future (hasn't occurred yet)
+ */
+export function isSessionInFuture(sessionDate: string): boolean {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const session = new Date(sessionDate)
+  const sessionDay = new Date(session.getFullYear(), session.getMonth(), session.getDate())
+  return sessionDay > today
+}
+
+/**
  * Determines the late type based on current time and session start time.
  * If within first 15 minutes of session start, it's 'start'.
  * Otherwise, it's 'after_break'.
@@ -40,25 +51,24 @@ export function calculateSessionStats(session: SessionWithAttendance): SessionAt
   const total = TEAM_MEMBERS.length
   const records = session.attendance_records || []
   
-  let present = 0
-  let late = 0
-  let lateStart = 0
-  let lateAfterBreak = 0
+  let late = 0 // Number of people who were late (each person counted once)
+  let lateStart = 0 // Number of people late at start
+  let lateAfterBreak = 0 // Total number of late returns from breaks (can be multiple per person)
   let absentPlanned = 0
   let absentUnplanned = 0
   
   records.forEach(record => {
     switch (record.status) {
       case 'present':
-        present++
-        // Check new late fields
-        if (record.late_start) {
+        // Count people who were late (present but with late flags)
+        if (record.late_start || record.late_break_count > 0) {
           late++
-          lateStart++
-        }
-        if (record.late_break_count > 0) {
-          late += record.late_break_count
-          lateAfterBreak += record.late_break_count
+          if (record.late_start) {
+            lateStart++
+          }
+          if (record.late_break_count > 0) {
+            lateAfterBreak += record.late_break_count
+          }
         }
         break
       case 'absent_planned':
@@ -69,6 +79,11 @@ export function calculateSessionStats(session: SessionWithAttendance): SessionAt
         break
     }
   })
+  
+  // Present = everyone who is not absent (includes late arrivals)
+  // By default, everyone is present unless they have an absence record
+  const totalAbsent = absentPlanned + absentUnplanned
+  const present = total - totalAbsent
   
   const notRecorded = total - records.length
   
