@@ -106,6 +106,15 @@ export default function SessionCalendar({
     )
   }
 
+  const isSessionInFuture = (session: SessionWithAttendance) => {
+    const now = new Date()
+    const sessionDate = new Date(session.date)
+    // Compare just the date parts (ignore time)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
+    return sessionDay > today
+  }
+
   return (
     <Card>
       <CardHeader className="pb-2 px-3 sm:px-6">
@@ -163,6 +172,7 @@ export default function SessionCalendar({
                       const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
                       const issueCount = stats.late + stats.absentUnplanned
+                      const isFuture = isSessionInFuture(session)
                       
                       return (
                         <button
@@ -173,7 +183,8 @@ export default function SessionCalendar({
                             getSessionTypeColor(session.type),
                             'text-white hover:opacity-90',
                             isSelected && 'ring-2 ring-offset-1 ring-primary',
-                            session.google_deleted && 'opacity-50'
+                            session.google_deleted && 'opacity-50',
+                            isFuture && 'opacity-40'
                           )}
                           title={`${session.title} - ${formatTime(session.start_time)}`}
                         >
@@ -199,6 +210,7 @@ export default function SessionCalendar({
                       const stats = calculateSessionStats(session)
                       const isSelected = session.id === selectedSessionId
                       const issueCount = stats.late + stats.absentUnplanned
+                      const isFuture = isSessionInFuture(session)
                       
                       return (
                         <button
@@ -209,7 +221,8 @@ export default function SessionCalendar({
                             getSessionTypeColor(session.type),
                             'text-white hover:opacity-90',
                             isSelected && 'ring-2 ring-offset-1 ring-primary',
-                            session.google_deleted && 'opacity-50 line-through'
+                            session.google_deleted && 'opacity-50 line-through',
+                            isFuture && 'opacity-40'
                           )}
                         >
                           <div className="font-medium truncate">
