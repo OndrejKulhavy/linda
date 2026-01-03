@@ -40,9 +40,9 @@ export function calculateSessionStats(session: SessionWithAttendance): SessionAt
   const total = TEAM_MEMBERS.length
   const records = session.attendance_records || []
   
-  let late = 0 // Number of people who were late
-  let lateStart = 0
-  let lateAfterBreak = 0
+  let late = 0 // Number of people who were late (each person counted once)
+  let lateStart = 0 // Number of people late at start
+  let lateAfterBreak = 0 // Total number of late returns from breaks (can be multiple per person)
   let absentPlanned = 0
   let absentUnplanned = 0
   
