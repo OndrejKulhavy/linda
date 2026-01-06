@@ -172,7 +172,7 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
   }, [data])
 
   const defaultActiveProjects = useMemo(() => {
-    const allowedProjects = new Set(["Practice", "Reading", "Training"])
+    const allowedProjects = new Set(["Practice", "Reading", "Training", "Projekty", "Tým"])
     return new Set(projects.filter((p) => allowedProjects.has(p)))
   }, [projects])
 
