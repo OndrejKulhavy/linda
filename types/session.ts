@@ -14,6 +14,7 @@ export interface Session {
   date: string
   start_time: string
   end_time: string
+  description: string | null
   google_deleted: boolean
   synced_at: string
   created_at: string
@@ -57,6 +58,7 @@ export interface SessionAttendanceStats {
 export interface GoogleCalendarEvent {
   id: string
   summary: string
+  description?: string
   start: {
     dateTime?: string
     date?: string

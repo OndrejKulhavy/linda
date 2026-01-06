@@ -97,6 +97,7 @@ export async function fetchCalendarEvents(
           events.push({
             id: item.id,
             summary: item.summary,
+            description: item.description ?? undefined,
             start: {
               dateTime: item.start?.dateTime ?? undefined,
               date: item.start?.date ?? undefined,
