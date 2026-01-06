@@ -360,6 +360,13 @@ export default function AttendancePage() {
           </Card>
         ) : (
           <div className="space-y-6">
+            {/* Note about future sessions */}
+            {filteredSessions.length > pastSessions.length && (
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+                ℹ️ Statistiky zahrnují pouze uskutečněné schůzky ({pastSessions.length} z {filteredSessions.length}). Nadcházející schůzky jsou ze statistik vyloučeny.
+              </div>
+            )}
+            
             {/* Overview Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card>
