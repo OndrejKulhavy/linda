@@ -3,11 +3,17 @@ import { validateDateRange, fetchCurrentUser } from "@/utils/clockify"
 
 interface ClockifyTimeEntry {
   id: string
+  projectId: string
   timeInterval: {
     start: string
     end: string | null
     duration: string | null
   }
+}
+
+interface ClockifyProject {
+  id: string
+  name: string
 }
 
 function parseDuration(duration: string | null): number {
@@ -39,17 +45,31 @@ export async function GET(request: NextRequest) {
   try {
     const { defaultWorkspace: workspaceId } = await fetchCurrentUser(apiKey)
 
-    const usersRes = await fetch(`https://api.clockify.me/api/v1/workspaces/${workspaceId}/users?status=ACTIVE`, {
-      headers: { "X-Api-Key": apiKey },
-    })
+    const [usersRes, projectsRes] = await Promise.all([
+      fetch(`https://api.clockify.me/api/v1/workspaces/${workspaceId}/users?status=ACTIVE`, {
+        headers: { "X-Api-Key": apiKey },
+      }),
+      fetch(`https://api.clockify.me/api/v1/workspaces/${workspaceId}/projects`, {
+        headers: { "X-Api-Key": apiKey },
+      }),
+    ])
 
-    if (!usersRes.ok) {
-      throw new Error("Failed to fetch users")
+    if (!usersRes.ok || !projectsRes.ok) {
+      throw new Error("Failed to fetch workspace data")
     }
 
     const users: { id: string; name: string; status: string }[] = await usersRes.json()
+    const projects: ClockifyProject[] = await projectsRes.json()
+    
     const activeUsers = users.filter(u => u.status === "ACTIVE")
     const userCount = activeUsers.length
+
+    // Create project map and filter for allowed projects
+    const projectMap = new Map(projects.map((p) => [p.id, p.name]))
+    const allowedProjects = new Set(["Practice", "Reading", "Training", "Projekty", "Tým"])
+    const allowedProjectIds = new Set(
+      projects.filter((p) => allowedProjects.has(p.name)).map((p) => p.id)
+    )
 
     const dailyHours = new Map<string, number>()
 
@@ -62,9 +82,12 @@ export async function GET(request: NextRequest) {
       if (entriesRes.ok) {
         const entries: ClockifyTimeEntry[] = await entriesRes.json()
         for (const entry of entries) {
-          const date = entry.timeInterval.start.split("T")[0]
-          const hours = parseDuration(entry.timeInterval.duration)
-          dailyHours.set(date, (dailyHours.get(date) || 0) + hours)
+          // Only count hours from allowed projects
+          if (allowedProjectIds.has(entry.projectId)) {
+            const date = entry.timeInterval.start.split("T")[0]
+            const hours = parseDuration(entry.timeInterval.duration)
+            dailyHours.set(date, (dailyHours.get(date) || 0) + hours)
+          }
         }
       }
     }

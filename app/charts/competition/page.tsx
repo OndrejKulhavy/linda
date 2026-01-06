@@ -20,6 +20,8 @@ interface UserBreakdown {
   reading: number
   practice: number
   training: number
+  projekty: number
+  tym: number
 }
 
 interface ReadingUser {
@@ -115,10 +117,10 @@ export default function CompetitionPage() {
       }
 
       // Aggregate hours per user per project type
-      const userDataMap = new Map<string, { reading: number; practice: number; training: number }>()
+      const userDataMap = new Map<string, { reading: number; practice: number; training: number; projekty: number; tym: number }>()
 
       for (const entry of result.data) {
-        const current = userDataMap.get(entry.name) || { reading: 0, practice: 0, training: 0 }
+        const current = userDataMap.get(entry.name) || { reading: 0, practice: 0, training: 0, projekty: 0, tym: 0 }
         
         if (entry.project === "Reading") {
           current.reading += entry.hours
@@ -126,6 +128,10 @@ export default function CompetitionPage() {
           current.practice += entry.hours
         } else if (entry.project === "Training") {
           current.training += entry.hours
+        } else if (entry.project === "Projekty") {
+          current.projekty += entry.hours
+        } else if (entry.project === "Tým") {
+          current.tym += entry.hours
         }
         
         userDataMap.set(entry.name, current)
@@ -135,10 +141,12 @@ export default function CompetitionPage() {
       const achieversList: UserBreakdown[] = Array.from(userDataMap.entries())
         .map(([name, data]) => ({
           name,
-          total: Math.round((data.reading + data.practice + data.training) * 10) / 10,
+          total: Math.round((data.reading + data.practice + data.training + data.projekty + data.tym) * 10) / 10,
           reading: Math.round(data.reading * 10) / 10,
           practice: Math.round(data.practice * 10) / 10,
           training: Math.round(data.training * 10) / 10,
+          projekty: Math.round(data.projekty * 10) / 10,
+          tym: Math.round(data.tym * 10) / 10,
         }))
         .filter(user => user.total >= TARGET_HOURS)
         .sort((a, b) => b.total - a.total)
