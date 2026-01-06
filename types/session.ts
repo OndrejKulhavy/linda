@@ -10,6 +10,7 @@ export interface Session {
   id: string
   google_event_id: string
   title: string
+  description: string | null
   type: SessionType
   date: string
   start_time: string
@@ -57,6 +58,7 @@ export interface SessionAttendanceStats {
 export interface GoogleCalendarEvent {
   id: string
   summary: string
+  description?: string
   start: {
     dateTime?: string
     date?: string

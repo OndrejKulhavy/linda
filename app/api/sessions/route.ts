@@ -118,6 +118,7 @@ export async function POST(request: Request) {
           .from('sessions')
           .update({
             title: event.summary,
+            description: event.description || null,
             type: eventType,
             date: dateTime.date,
             start_time: dateTime.startTime,
@@ -135,6 +136,7 @@ export async function POST(request: Request) {
           .insert({
             google_event_id: event.id,
             title: event.summary,
+            description: event.description || null,
             type: eventType,
             date: dateTime.date,
             start_time: dateTime.startTime,
