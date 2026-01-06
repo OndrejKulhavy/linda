@@ -122,6 +122,7 @@ export async function POST(request: Request) {
             date: dateTime.date,
             start_time: dateTime.startTime,
             end_time: dateTime.endTime,
+            description: event.description || null,
             google_deleted: false,
             synced_at: syncedAt,
           })
@@ -139,6 +140,7 @@ export async function POST(request: Request) {
             date: dateTime.date,
             start_time: dateTime.startTime,
             end_time: dateTime.endTime,
+            description: event.description || null,
             google_deleted: false,
             synced_at: syncedAt,
           })
