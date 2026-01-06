@@ -39,8 +39,7 @@ interface StatisticsResponse {
 
 function getDefaultDateRange() {
   const today = new Date()
-  const threeMonthsAgo = new Date(today)
-  threeMonthsAgo.setMonth(today.getMonth() - 3)
+  const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate())
   
   return {
     from: threeMonthsAgo.toISOString().split('T')[0],

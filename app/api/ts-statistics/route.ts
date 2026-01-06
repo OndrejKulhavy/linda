@@ -52,6 +52,11 @@ function parseDescription(description: string | null): Map<string, string[]> {
   return roleMap
 }
 
+// Escape special regex characters in names
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 // Match names from description with team members
 function matchTeamMember(descriptionName: string): string | null {
   const normalizedDesc = descriptionName.toLowerCase().trim()
@@ -63,9 +68,6 @@ function matchTeamMember(descriptionName: string): string | null {
     const fullName = getFullName(member)
     const firstName = member.firstName.toLowerCase()
     const lastName = member.lastName.toLowerCase()
-    
-    // Escape special regex characters in names
-    const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     
     // Match both first and last name with word boundaries, accounting for special characters
     const firstNamePattern = new RegExp(`(^|\\s)${escapeRegex(firstName)}(\\s|$)`, 'i')
