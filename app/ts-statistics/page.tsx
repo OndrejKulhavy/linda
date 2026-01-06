@@ -180,15 +180,18 @@ export default function TSStatisticsPage() {
                           <TableCell>
                             {member.roles.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
-                                {member.roles.map((role) => (
-                                  <span
-                                    key={role.role}
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs"
-                                    title={`${role.sessions.map(s => `${s.date}: ${s.title}`).join('\n')}`}
-                                  >
-                                    {role.role}: {role.count}x
-                                  </span>
-                                ))}
+                                {member.roles.map((role) => {
+                                  const tooltipText = role.sessions.map(s => `${s.date}: ${s.title}`).join('\n')
+                                  return (
+                                    <span
+                                      key={role.role}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs"
+                                      title={tooltipText}
+                                    >
+                                      {role.role}: {role.count}x
+                                    </span>
+                                  )
+                                })}
                               </div>
                             ) : (
                               <span className="text-muted-foreground text-sm">Žádné role</span>

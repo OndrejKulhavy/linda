@@ -30,15 +30,16 @@ function parseDescription(description: string | null): Map<string, string[]> {
     const trimmedLine = line.trim()
     if (!trimmedLine) continue
     
-    // Check if this is a role line (ends with : or doesn't start with -)
-    if (trimmedLine.match(/^[^-].*:?\s*$/)) {
-      // This looks like a role header
+    // Check if this is a role line - must not start with - and should be a standalone line
+    // Avoid matching lines that look like sentences or other content
+    if (!trimmedLine.startsWith('-') && !trimmedLine.startsWith('•') && trimmedLine.length > 0) {
+      // This looks like a role header, remove optional trailing colon
       currentRole = trimmedLine.replace(/:$/, '').trim()
       continue
     }
     
     // Check if this is a name line (starts with - or bullet point)
-    if (currentRole && trimmedLine.match(/^[-•]\s*.+/)) {
+    if (currentRole && (trimmedLine.startsWith('-') || trimmedLine.startsWith('•'))) {
       const name = trimmedLine.replace(/^[-•]\s*/, '').trim()
       
       if (!roleMap.has(currentRole)) {
@@ -55,18 +56,22 @@ function parseDescription(description: string | null): Map<string, string[]> {
 function matchTeamMember(descriptionName: string): string | null {
   const normalizedDesc = descriptionName.toLowerCase().trim()
   
+  // Remove common punctuation
+  const cleanDesc = normalizedDesc.replace(/[,;.]/g, ' ')
+  
   for (const member of TEAM_MEMBERS) {
     const fullName = getFullName(member)
     const firstName = member.firstName.toLowerCase()
     const lastName = member.lastName.toLowerCase()
     
-    // Check if description contains both first and last name
-    if (normalizedDesc.includes(firstName) && normalizedDesc.includes(lastName)) {
-      return fullName
-    }
+    // Escape special regex characters in names
+    const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     
-    // Check if it matches the full name format
-    if (normalizedDesc === fullName.toLowerCase()) {
+    // Match both first and last name with word boundaries, accounting for special characters
+    const firstNamePattern = new RegExp(`(^|\\s)${escapeRegex(firstName)}(\\s|$)`, 'i')
+    const lastNamePattern = new RegExp(`(^|\\s)${escapeRegex(lastName)}(\\s|$)`, 'i')
+    
+    if (firstNamePattern.test(cleanDesc) && lastNamePattern.test(cleanDesc)) {
       return fullName
     }
   }
