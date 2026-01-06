@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ThemeToggle } from '@/components/theme-toggle'
+import WheelOfLuck from '@/components/WheelOfLuck'
 import { ArrowLeft, Loader2, ChevronDown, ChevronUp, Users, TrendingUp } from 'lucide-react'
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, LabelList } from 'recharts'
@@ -184,6 +185,19 @@ export default function TSFacilitatorsPage() {
     return 'hsl(var(--chart-3))' // Yellow
   }
 
+  const currentDateRange = useMemo(() => {
+    const range = dateRanges.find(r => r.value === selectedRange)
+    return {
+      start: range?.startDate || null,
+      end: range?.endDate || null,
+    }
+  }, [dateRanges, selectedRange])
+
+  const handleWheelSelection = () => {
+    // Optionally refresh stats after wheel spin
+    // For now, we just celebrate the selection
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
@@ -226,6 +240,9 @@ export default function TSFacilitatorsPage() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Wheel of Luck */}
+            <WheelOfLuck dateRange={currentDateRange} onSelection={handleWheelSelection} />
+
             {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-4">
               <Card>

@@ -10,6 +10,8 @@ interface FacilitatorStats {
     title: string
     date: string
   }>
+  lastSessionDate: string | null
+  daysSinceLastSession: number | null
 }
 
 /**
@@ -116,6 +118,8 @@ export async function GET(request: Request) {
       name: fullName,
       count: 0,
       sessions: [],
+      lastSessionDate: null,
+      daysSinceLastSession: null,
     })
   })
 
@@ -134,6 +138,19 @@ export async function GET(request: Request) {
         })
       }
     })
+  })
+
+  // Calculate days since last session for each person
+  const now = new Date()
+  statsMap.forEach((stats) => {
+    if (stats.sessions.length > 0) {
+      // Sessions are already sorted by date descending, so first is most recent
+      const lastSession = stats.sessions[0]
+      const lastDate = new Date(lastSession.date)
+      const diffTime = now.getTime() - lastDate.getTime()
+      stats.daysSinceLastSession = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+      stats.lastSessionDate = lastSession.date
+    }
   })
 
   // Convert map to array and sort by count (descending)
