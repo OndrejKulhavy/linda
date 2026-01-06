@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import type { SessionWithAttendance, AttendanceRecord } from '@/types/session'
 import { TEAM_MEMBERS, getFullName } from '@/lib/team-members'
+import { isSessionInFuture } from '@/utils/attendance-helpers'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
