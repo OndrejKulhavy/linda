@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import type { SessionWithAttendance, AttendanceRecord } from '@/types/session'
 import { TEAM_MEMBERS, getFullName } from '@/lib/team-members'
+import { isSessionInFuture } from '@/utils/attendance-helpers'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
@@ -104,6 +105,11 @@ export default function AttendancePage() {
     }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [sessions, selectedMonth])
 
+  // Filter out future sessions for statistics (only count sessions that have already happened)
+  const pastSessions = useMemo(() => {
+    return filteredSessions.filter(session => !isSessionInFuture(session.date))
+  }, [filteredSessions])
+
   // Calculate member statistics
   const memberStats = useMemo((): MemberStats[] => {
     const statsMap = new Map<string, MemberStats>()
@@ -119,7 +125,7 @@ export default function AttendancePage() {
         lateAfterBreak: 0,
         absentPlanned: 0,
         absentUnplanned: 0,
-        totalSessions: filteredSessions.length,
+        totalSessions: pastSessions.length,
         attendanceRate: 0,
         totalLate: 0,
       })
@@ -127,7 +133,7 @@ export default function AttendancePage() {
     
     // Count records - only absences and late arrivals create records
     // No record = person was present and on time
-    filteredSessions.forEach(session => {
+    pastSessions.forEach(session => {
       session.attendance_records?.forEach((record: AttendanceRecord) => {
         const stats = statsMap.get(record.employee_name)
         if (stats) {
@@ -160,12 +166,12 @@ export default function AttendancePage() {
     })
     
     return result.sort((a, b) => a.name.localeCompare(b.name, 'cs'))
-  }, [filteredSessions])
+  }, [pastSessions])
 
   // Overview stats
   const overviewStats = useMemo(() => {
-    const totalSessions = filteredSessions.length
-    const sessionsWithRecords = filteredSessions.filter(s => s.attendance_records?.length > 0).length
+    const totalSessions = pastSessions.length
+    const sessionsWithRecords = pastSessions.filter(s => s.attendance_records?.length > 0).length
     const teamSize = TEAM_MEMBERS.length
     
     let totalLateInstances = 0
@@ -173,7 +179,7 @@ export default function AttendancePage() {
     let totalAbsentUnplanned = 0
     
     // Count only absences and late instances from records
-    filteredSessions.forEach(session => {
+    pastSessions.forEach(session => {
       session.attendance_records?.forEach((record: AttendanceRecord) => {
         switch (record.status) {
           case 'present': 
@@ -205,13 +211,13 @@ export default function AttendancePage() {
       totalAbsentUnplanned,
       attendanceRate,
     }
-  }, [filteredSessions])
+  }, [pastSessions])
 
   // Attendance data per event (each session is a point, TM and TS separate)
   const attendanceData = useMemo(() => {
     const teamSize = TEAM_MEMBERS.length
     
-    return filteredSessions.map(session => {
+    return pastSessions.map(session => {
       const records = session.attendance_records || []
       const date = new Date(session.date)
       const isTM = session.type === 'team_meeting'
@@ -242,11 +248,11 @@ export default function AttendancePage() {
         attendanceRate,
       }
     })
-  }, [filteredSessions])
+  }, [pastSessions])
 
   // Late arrivals data per event
   const lateData = useMemo(() => {
-    return filteredSessions.map(session => {
+    return pastSessions.map(session => {
       const records = session.attendance_records || []
       const date = new Date(session.date)
       const isTM = session.type === 'team_meeting'
@@ -269,7 +275,7 @@ export default function AttendancePage() {
         totalLate,
       }
     })
-  }, [filteredSessions])
+  }, [pastSessions])
 
   // Top late arrivals (people with most lates)
   const topLateArrivals = useMemo(() => {
@@ -355,6 +361,13 @@ export default function AttendancePage() {
           </Card>
         ) : (
           <div className="space-y-6">
+            {/* Note about future sessions */}
+            {filteredSessions.length > pastSessions.length && (
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+                ℹ️ Statistiky zahrnují pouze uskutečněné schůzky ({pastSessions.length} z {filteredSessions.length}). Nadcházející schůzky jsou ze statistik vyloučeny.
+              </div>
+            )}
+            
             {/* Overview Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card>
