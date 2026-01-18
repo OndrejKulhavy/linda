@@ -31,7 +31,6 @@ import { cn } from '@/lib/utils'
 
 interface MemberStats {
   name: string
-  firstName: string
   present: number
   lateStart: number
   lateAfterBreak: number
@@ -119,7 +118,6 @@ export default function AttendancePage() {
       const fullName = getFullName(member)
       statsMap.set(fullName, {
         name: fullName,
-        firstName: member.firstName,
         present: 0,
         lateStart: 0,
         lateAfterBreak: 0,
@@ -605,10 +603,10 @@ export default function AttendancePage() {
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                         <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis 
-                          dataKey="firstName" 
+                          dataKey="name" 
                           type="category" 
-                          width={70} 
-                          tick={{ fontSize: 11 }}
+                          width={100} 
+                          tick={{ fontSize: 10 }}
                           tickLine={false}
                           axisLine={false}
                         />
@@ -682,10 +680,7 @@ export default function AttendancePage() {
                             )}
                           >
                             <td className="py-2.5 px-2">
-                              <div className="font-medium">{member.firstName}</div>
-                              <div className="text-[10px] text-muted-foreground hidden sm:block">
-                                {member.name.split(' ').slice(1).join(' ')}
-                              </div>
+                              <div className="font-medium">{member.name}</div>
                             </td>
                             <td className="text-center py-2.5 px-1 sm:px-2">
                               <span className={cn(
