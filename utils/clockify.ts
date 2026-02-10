@@ -28,12 +28,18 @@ export interface WorkHoursData {
  */
 function getCzechTimezoneOffset(year: number, month: number, day: number): number {
   // Find last Sunday of March
-  const marchLastDay = new Date(year, 2, 31) // March has 31 days
-  const marchLastSunday = new Date(year, 2, 31 - ((marchLastDay.getDay() || 7) - 1))
+  const marchLastDay = new Date(year, 3, 0) // Day 0 of April = last day of March
+  const marchDay = marchLastDay.getDate()
+  const marchDayOfWeek = marchLastDay.getDay()
+  const daysToSubtractMarch = marchDayOfWeek === 0 ? 0 : marchDayOfWeek
+  const marchLastSunday = new Date(year, 2, marchDay - daysToSubtractMarch)
   
-  // Find last Sunday of October
-  const octoberLastDay = new Date(year, 9, 31) // October has 31 days
-  const octoberLastSunday = new Date(year, 9, 31 - ((octoberLastDay.getDay() || 7) - 1))
+  // Find last Sunday of October  
+  const octoberLastDay = new Date(year, 10, 0) // Day 0 of November = last day of October
+  const octoberDay = octoberLastDay.getDate()
+  const octoberDayOfWeek = octoberLastDay.getDay()
+  const daysToSubtractOctober = octoberDayOfWeek === 0 ? 0 : octoberDayOfWeek
+  const octoberLastSunday = new Date(year, 9, octoberDay - daysToSubtractOctober)
   
   const currentDate = new Date(year, month - 1, day)
   
