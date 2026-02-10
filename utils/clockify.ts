@@ -27,19 +27,17 @@ export interface WorkHoursData {
  * @returns UTC offset in hours (1 for CET, 2 for CEST)
  */
 function getCzechTimezoneOffset(year: number, month: number, day: number): number {
-  // Find last Sunday of March
-  const marchLastDay = new Date(year, 3, 0) // Day 0 of April = last day of March
-  const marchDay = marchLastDay.getDate()
-  const marchDayOfWeek = marchLastDay.getDay()
-  const daysToSubtractMarch = marchDayOfWeek === 0 ? 0 : marchDayOfWeek
-  const marchLastSunday = new Date(year, 2, marchDay - daysToSubtractMarch)
+  // Find last Sunday of March by starting from last day and working backwards
+  let marchLastSunday = new Date(year, 3, 0) // Last day of March
+  while (marchLastSunday.getDay() !== 0) { // 0 = Sunday
+    marchLastSunday.setDate(marchLastSunday.getDate() - 1)
+  }
   
-  // Find last Sunday of October  
-  const octoberLastDay = new Date(year, 10, 0) // Day 0 of November = last day of October
-  const octoberDay = octoberLastDay.getDate()
-  const octoberDayOfWeek = octoberLastDay.getDay()
-  const daysToSubtractOctober = octoberDayOfWeek === 0 ? 0 : octoberDayOfWeek
-  const octoberLastSunday = new Date(year, 9, octoberDay - daysToSubtractOctober)
+  // Find last Sunday of October by starting from last day and working backwards
+  let octoberLastSunday = new Date(year, 10, 0) // Last day of October
+  while (octoberLastSunday.getDay() !== 0) { // 0 = Sunday
+    octoberLastSunday.setDate(octoberLastSunday.getDate() - 1)
+  }
   
   const currentDate = new Date(year, month - 1, day)
   
