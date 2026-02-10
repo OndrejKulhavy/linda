@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { validateDateRange, fetchCurrentUser } from "@/utils/clockify"
+import { validateDateRange, fetchCurrentUser, formatDateForClockify } from "@/utils/clockify"
 
 interface ClockifyTimeEntry {
   id: string
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     for (const user of activeUsers) {
       const entriesRes = await fetch(
-        `https://api.clockify.me/api/v1/workspaces/${workspaceId}/user/${user.id}/time-entries?start=${from}T00:00:00Z&end=${to}T23:59:59Z&page-size=1000`,
+        `https://api.clockify.me/api/v1/workspaces/${workspaceId}/user/${user.id}/time-entries?start=${formatDateForClockify(from!, false)}&end=${formatDateForClockify(to!, true)}&page-size=1000`,
         { headers: { "X-Api-Key": apiKey } }
       )
 
