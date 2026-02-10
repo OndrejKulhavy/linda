@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { sendEmail } from "@/lib/resend"
 import { getRandomLindaMessage, getEmailSubject } from "@/lib/linda-messages"
 import { calculateExpectedHours } from "@/lib/czech-holidays"
+import { formatDateForClockify } from "@/utils/clockify"
 
 // Remind if logged hours are less than this percentage of expected hours
 const THRESHOLD_PERCENTAGE = 0.75 // 75% of expected hours (e.g., 30h out of 40h)
@@ -164,7 +165,7 @@ export async function GET(request: NextRequest) {
 
       // Get user's time entries for this week
       const entriesRes = await fetch(
-        `https://api.clockify.me/api/v1/workspaces/${workspaceId}/user/${user.id}/time-entries?start=${from}T00:00:00Z&end=${to}T23:59:59Z&page-size=1000`,
+        `https://api.clockify.me/api/v1/workspaces/${workspaceId}/user/${user.id}/time-entries?start=${formatDateForClockify(from, false)}&end=${formatDateForClockify(to, true)}&page-size=1000`,
         { headers: { "X-Api-Key": apiKey } }
       )
 
