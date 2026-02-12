@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { validateDateRange, fetchCurrentUser, formatDateForClockify } from "@/utils/clockify"
+import { validateDateRange, fetchCurrentUser, formatDateForClockify, utcToCzechDate } from "@/utils/clockify"
 
 interface ClockifyTimeEntry {
   id: string
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         for (const entry of entries) {
           // Only count hours from allowed projects
           if (allowedProjectIds.has(entry.projectId)) {
-            const date = entry.timeInterval.start.split("T")[0]
+            const date = utcToCzechDate(entry.timeInterval.start)
             const hours = parseDuration(entry.timeInterval.duration)
             dailyHours.set(date, (dailyHours.get(date) || 0) + hours)
           }

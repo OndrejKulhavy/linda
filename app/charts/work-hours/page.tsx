@@ -41,6 +41,13 @@ function generateMonthOptions(monthsCount: number = 12): MonthOption[] {
   return options
 }
 
+function formatDateISO(date: Date): string {
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function getDateRangeFromMonths(fromMonth: string, toMonth: string): { from: string; to: string } {
   const [fromYear, fromMonthStr] = fromMonth.split("-")
   const [toYear, toMonthStr] = toMonth.split("-")
@@ -49,8 +56,8 @@ function getDateRangeFromMonths(fromMonth: string, toMonth: string): { from: str
   const toDate = new Date(parseInt(toYear), parseInt(toMonthStr), 0)
   
   return {
-    from: fromDate.toISOString().split("T")[0],
-    to: toDate.toISOString().split("T")[0]
+    from: formatDateISO(fromDate),
+    to: formatDateISO(toDate)
   }
 }
 

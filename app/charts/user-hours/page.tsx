@@ -46,7 +46,11 @@ function formatDate(date: Date): string {
 }
 
 function formatDateISO(date: Date): string {
-  return date.toISOString().split("T")[0]
+  // Use local date components to avoid UTC conversion issues
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function generateWeekOptions(weeksCount: number = 8): WeekOption[] {

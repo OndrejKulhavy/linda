@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { Treemap, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend } from "recharts"
 import { Badge } from "@/components/ui/badge"
+import { formatDateForClockify } from "@/utils/clockify"
 import {
   Dialog,
   DialogContent,
@@ -295,8 +296,9 @@ export function UserHoursTreemap({ data, dateRange, highlight40Hours = false }: 
     }
 
     // Generate Clockify URL for the user
+    // Use formatDateForClockify to properly convert Czech local time to UTC
     const clockifyUrl = dateRange?.from && dateRange?.to && userDetails.user.id
-      ? `https://app.clockify.me/reports/summary?start=${dateRange.from}T00:00:00.000Z&end=${dateRange.to}T23:59:59.999Z&filterValuesData=${encodeURIComponent(JSON.stringify({ users: [userDetails.user.id], userGroups: [], userAndGroup: [] }))}&filterOptions=${encodeURIComponent(JSON.stringify({ userAndGroup: { status: "ACTIVE_WITH_PENDING" } }))}`
+      ? `https://app.clockify.me/reports/summary?start=${formatDateForClockify(dateRange.from, false)}&end=${formatDateForClockify(dateRange.to, true)}&filterValuesData=${encodeURIComponent(JSON.stringify({ users: [userDetails.user.id], userGroups: [], userAndGroup: [] }))}&filterOptions=${encodeURIComponent(JSON.stringify({ userAndGroup: { status: "ACTIVE_WITH_PENDING" } }))}`
       : null
 
     return (

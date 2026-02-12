@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { validateDateRange, fetchCurrentUser, formatDateForClockify } from "@/utils/clockify"
+import { validateDateRange, fetchCurrentUser, formatDateForClockify, utcToCzechDate } from "@/utils/clockify"
 
 interface ClockifyTimeEntry {
   id: string
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
         project: projectName,
         task: taskName,
         hours: Math.round(hours * 100) / 100,
-        date: entry.timeInterval.start.split("T")[0],
+        date: utcToCzechDate(entry.timeInterval.start),
       })
     }
 

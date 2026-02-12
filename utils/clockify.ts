@@ -82,6 +82,19 @@ export function formatDateForClockify(dateStr: string, isEndOfDay: boolean = fal
   }
 }
 
+/**
+ * Converts a UTC timestamp to Czech local date (YYYY-MM-DD format).
+ * Uses Europe/Prague timezone which is CET (UTC+1) or CEST (UTC+2) depending on DST.
+ * 
+ * @param utcTimestamp - ISO 8601 UTC timestamp (e.g., "2025-01-19T23:30:00Z")
+ * @returns Date string in YYYY-MM-DD format in Czech local time
+ */
+export function utcToCzechDate(utcTimestamp: string): string {
+  const date = new Date(utcTimestamp)
+  // Format in Czech timezone using 'en-CA' locale for YYYY-MM-DD format
+  return date.toLocaleDateString('en-CA', { timeZone: 'Europe/Prague' })
+}
+
 export function validateDateRange(from: string | null, to: string | null): { valid: boolean; error?: string } {
   if (!from || !to) {
     return { valid: false, error: "Both 'from' and 'to' parameters are required" }
@@ -148,7 +161,7 @@ export function normalizeClockifyData(entries: ClockifyTimeEntry[]): WorkHoursDa
   const hoursMap = new Map<string, number>()
 
   for (const entry of entries) {
-    const date = entry.timeInterval.start.split("T")[0]
+    const date = utcToCzechDate(entry.timeInterval.start)
     const duration = entry.timeInterval.duration
 
     const hours = parseDuration(duration)
