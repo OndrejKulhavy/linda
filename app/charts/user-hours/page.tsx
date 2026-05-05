@@ -53,7 +53,7 @@ function formatDateISO(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
-function generateWeekOptions(weeksCount: number = 8): WeekOption[] {
+function generateWeekOptions(weeksCount: number = 52): WeekOption[] {
   const options: WeekOption[] = []
   const today = new Date()
   const currentMonday = getMonday(today)
@@ -84,7 +84,7 @@ function generateWeekOptions(weeksCount: number = 8): WeekOption[] {
 }
 
 export default function UserHoursPage() {
-  const weekOptions = generateWeekOptions(8)
+  const weekOptions = generateWeekOptions(52)
   const defaultWeek = weekOptions[0]
   
   const [selectedWeek, setSelectedWeek] = useState(defaultWeek.value)
