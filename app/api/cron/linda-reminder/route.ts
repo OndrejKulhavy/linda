@@ -59,6 +59,20 @@ function getFirstName(fullName: string): string {
   return fullName.split(" ")[0]
 }
 
+// Astronomical summer: June 21 – September 22 (inclusive). Reminders are
+// disabled during this range. The cron fires at 09:00 UTC and Czech time is
+// always ahead of UTC, so the server calendar day matches the Czech day here.
+function isSummerBreak(date: Date): boolean {
+  const month = date.getMonth() + 1 // 1-indexed
+  const day = date.getDate()
+  return (
+    (month === 6 && day >= 21) ||
+    month === 7 ||
+    month === 8 ||
+    (month === 9 && day <= 22)
+  )
+}
+
 // Helper function to add delay between requests to respect rate limits
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -80,6 +94,15 @@ export async function GET(request: NextRequest) {
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: "RESEND_API_KEY not configured" }, { status: 500 })
+  }
+
+  // Skip reminders during summer break (June 21 – September 22)
+  if (isSummerBreak(new Date())) {
+    return NextResponse.json({
+      success: true,
+      skipped: true,
+      reason: "Summer break (Jun 21 – Sep 22) — reminders disabled",
+    })
   }
 
   try {
